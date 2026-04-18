@@ -8,9 +8,15 @@ A macOS utility that prevents accidental ⌘Q quits. Choose between double-press
 
 ## Installation
 
-1. Double-click `QuitProtect.app` to launch it (or build from source — see below)
-2. A power icon appears in your menu bar
-3. Grant Accessibility permission when prompted
+Two formats on every release — both signed and notarised, pick whichever suits:
+
+- **[Installer (`.pkg`)](https://github.com/PerpetualBeta/QuitProtect/releases/latest/download/QuitProtect.pkg)** — recommended for first-time installs. Double-click to run; macOS Installer places the app in `/Applications` without quarantine or App Translocation.
+- **[Download (`.zip`)](https://github.com/PerpetualBeta/QuitProtect/releases/latest)** — unzip and drag `QuitProtect.app` to your Applications folder.
+
+After installation:
+
+1. Launch QuitProtect — a power icon appears in your menu bar
+2. Grant Accessibility permission when prompted
 
 ## How It Works
 
