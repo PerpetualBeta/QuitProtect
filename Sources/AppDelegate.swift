@@ -44,23 +44,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: - Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        UserDefaults.standard.register(defaults: ["menuBarPillEnabled": true])
+        migrateLegacyPillColorKey()
+
         NSApp.setActivationPolicy(.accessory)
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         updateIcon()
-        JorvikMenuBarPill.apply(to: statusItem.button!)
         updateChecker.checkOnSchedule()
 
         let menu = NSMenu()
         menu.delegate = self
         statusItem.menu = menu
-
-        DistributedNotificationCenter.default.addObserver(
-            self,
-            selector: #selector(appearanceChanged),
-            name: NSNotification.Name("AppleInterfaceThemeChangedNotification"),
-            object: nil
-        )
 
         // Start the engine (permission polling will auto-start when granted)
         engine.start(mode: quitMode, holdDuration: holdDuration, doublePressInterval: doublePressInterval)
@@ -79,22 +74,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         engine.stop()
     }
 
-    @objc private func appearanceChanged() {
-        if let button = statusItem.button {
-            JorvikMenuBarPill.refresh(on: button)
-        }
+    // One-shot removal of the user-chosen pill colour key from the old design.
+    // The new pill uses fixed grey/light colours; the key is dead weight.
+    private func migrateLegacyPillColorKey() {
+        let migrated = "didMigratePillColorV2"
+        if UserDefaults.standard.bool(forKey: migrated) { return }
+        UserDefaults.standard.removeObject(forKey: "menuBarPillColor")
+        UserDefaults.standard.set(true, forKey: migrated)
     }
 
     // MARK: - Icon
 
-    private func updateIcon() {
+    func updateIcon() {
         let symbolName = engine.isActive ? "power.circle.fill" : "power.circle"
-        if let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "QuitProtect") {
-            image.isTemplate = true
-            statusItem.button?.image = image
-        } else {
-            statusItem.button?.title = "⏻"
-        }
+        statusItem.button?.image = JorvikMenuBarPill.icon(
+            symbolName: symbolName,
+            accessibilityDescription: "QuitProtect"
+        )
     }
 
     // MARK: - Dynamic menu (NSMenuDelegate)
