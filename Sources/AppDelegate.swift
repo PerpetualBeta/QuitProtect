@@ -2,6 +2,7 @@ import AppKit
 import ApplicationServices
 import SwiftUI
 import ServiceManagement
+import Sparkle
 
 // MARK: - App Delegate
 
@@ -12,6 +13,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     let engine = QuitProtectEngine()
     let updateChecker = JorvikUpdateChecker(repoName: "QuitProtect")
+
+    // @ObservationIgnored — @Observable's macro can't transform `lazy`,
+    // and Sparkle's controller isn't observable state.
+    @ObservationIgnored let sparkleUserDriverDelegate = QuitProtectUserDriverDelegate()
+    @ObservationIgnored lazy var sparkleUpdater = SPUStandardUpdaterController(
+        startingUpdater: true,
+        updaterDelegate: nil,
+        userDriverDelegate: sparkleUserDriverDelegate
+    )
 
     // Settings (stored properties for @Observable, synced to UserDefaults)
     var quitMode: QuitMode = {
@@ -50,7 +60,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         updateIcon()
-        updateChecker.checkOnSchedule()
+        // Sparkle handles update polling now. JorvikUpdateChecker instance
+        // remains because JorvikSettingsView.showWindow still requires one
+        // as a parameter, pending JorvikKit retirement (§11.5).
+        _ = sparkleUpdater  // forces lazy init so Sparkle starts at launch
+        // updateChecker.checkOnSchedule()  // disabled — Sparkle owns this now
 
         let menu = NSMenu()
         menu.delegate = self
@@ -135,6 +149,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             attributedTitle: countAttr
         ))
 
+        actions.append(JorvikMenuBuilder.ActionItem(title: "-", action: #selector(noop), target: self))
+        actions.append(JorvikMenuBuilder.ActionItem(
+            title: "Check for Updates\u{2026}",
+            action: #selector(checkForUpdates(_:)),
+            target: self
+        ))
+
         let built = JorvikMenuBuilder.buildMenu(
             appName: "QuitProtect",
             aboutAction: #selector(openAbout),
@@ -161,6 +182,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         updateIcon()
     }
 
+    @objc func checkForUpdates(_ sender: Any?) { sparkleUpdater.checkForUpdates(sender) }
     @objc private func noop() {}
 
     // MARK: - About & Settings
@@ -181,5 +203,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         ) {
             QuitProtectSettingsContent(delegate: delegate)
         }
+    }
+}
+
+/// LSUIElement apps don't auto-activate when they present windows, so
+/// Sparkle's update dialogs would appear behind whatever app is currently
+/// key. This brings QuitProtect frontmost just before each modal.
+final class QuitProtectUserDriverDelegate: NSObject, SPUStandardUserDriverDelegate {
+    func standardUserDriverWillShowModalAlert() {
+        NSApp.activate(ignoringOtherApps: true)
     }
 }
