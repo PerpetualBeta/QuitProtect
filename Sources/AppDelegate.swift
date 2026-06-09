@@ -10,7 +10,7 @@ import Sparkle
 @Observable
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
-    private var statusItem: NSStatusItem!
+    private var statusItem: NSStatusItem?
     let engine = QuitProtectEngine()
 
     // @ObservationIgnored — @Observable's macro can't transform `lazy`,
@@ -57,13 +57,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         NSApp.setActivationPolicy(.accessory)
 
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        updateIcon()
+        createStatusItem()
         _ = sparkleUpdater  // forces lazy init so Sparkle starts at launch
 
-        let menu = NSMenu()
-        menu.delegate = self
-        statusItem.menu = menu
+        // Create or remove the status item when the user toggles its visibility.
+        NotificationCenter.default.addObserver(
+            forName: JorvikStatusItemVisibility.didChangeNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.applyStatusItemVisibility() }
+        }
 
         // Start the engine (permission polling will auto-start when granted)
         engine.start(mode: quitMode, holdDuration: holdDuration, doublePressInterval: doublePressInterval)
@@ -92,6 +95,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         engine.stop()
     }
 
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        JorvikStatusItemVisibility.handleReopen()
+        return true
+    }
+
+    // MARK: - Status item
+
+    func createStatusItem() {
+        guard JorvikStatusItemVisibility.isVisible else { return }
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        updateIcon()
+
+        let menu = NSMenu()
+        menu.delegate = self
+        statusItem?.menu = menu
+    }
+
+    func applyStatusItemVisibility() {
+        if JorvikStatusItemVisibility.isVisible {
+            if statusItem == nil { createStatusItem() }
+        } else if let item = statusItem {
+            NSStatusBar.system.removeStatusItem(item)
+            statusItem = nil
+        }
+    }
+
     // One-shot removal of the user-chosen pill colour key from the old design.
     // The new pill uses fixed grey/light colours; the key is dead weight.
     private func migrateLegacyPillColorKey() {
@@ -105,7 +134,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func updateIcon() {
         let symbolName = engine.isActive ? "power.circle.fill" : "power.circle"
-        statusItem.button?.image = JorvikMenuBarPill.icon(
+        statusItem?.button?.image = JorvikMenuBarPill.icon(
             symbolName: symbolName,
             accessibilityDescription: "QuitProtect"
         )

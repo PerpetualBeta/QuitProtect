@@ -67,6 +67,8 @@ struct QuitProtectSettingsContent: View {
             }
         }
 
+        MenuBarVisibilitySettings()
+
         MenuBarPillSettings { delegate.updateIcon() }
     }
 }
