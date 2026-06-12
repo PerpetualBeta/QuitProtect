@@ -105,6 +105,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func createStatusItem() {
         guard JorvikStatusItemVisibility.isVisible else { return }
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        // Persist the item's menu-bar slot across launches (and let a user ⌘-drag stick).
+        statusItem?.autosaveName = "QuitProtectStatusItem"
         updateIcon()
 
         let menu = NSMenu()
