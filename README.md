@@ -78,6 +78,10 @@ If you've hidden the menu bar icon and want it back, simply re-open QuitProtect 
 
 Auto-updates are handled by Sparkle. Use the **Check for Updates…** entry in the right-click menu to check on demand; Sparkle's prompt offers an "Automatically download and install updates in the future" checkbox the first time an update is available.
 
+## Languages
+
+QuitProtect follows your macOS language preference and currently includes English and Simplified Chinese.
+
 ## Permissions
 
 ### Accessibility (required)

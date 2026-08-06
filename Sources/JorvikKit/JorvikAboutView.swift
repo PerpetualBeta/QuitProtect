@@ -21,7 +21,7 @@ struct JorvikAboutView: View {
                 .font(.title2)
                 .fontWeight(.semibold)
 
-            Text("Version \(version)")
+            Text(L10n.format("about.version_format", defaultValue: "Version %@", version))
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -29,27 +29,39 @@ struct JorvikAboutView: View {
                 .padding(.horizontal, 40)
 
             VStack(spacing: 4) {
-                Text("Public Domain — No Rights Reserved")
+                Text(L10n.string(
+                    "about.public_domain",
+                    defaultValue: "Public Domain — No Rights Reserved"
+                ))
                     .font(.caption)
                     .fontWeight(.medium)
 
-                Text("Do whatever you like with this.\nSource code included. No attribution required.\nNo conditions. Yours.")
+                Text(L10n.string(
+                    "about.license_details",
+                    defaultValue: "Do whatever you like with this.\nSource code included. No attribution required.\nNo conditions. Yours."
+                ))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
 
             HStack(spacing: 16) {
-                Link("Source Code", destination: URL(string: "https://github.com/PerpetualBeta/\(repoName)")!)
+                Link(
+                    L10n.string("about.source_code", defaultValue: "Source Code"),
+                    destination: URL(string: "https://github.com/PerpetualBeta/\(repoName)")!
+                )
                     .font(.caption)
 
                 if let page = productPage {
-                    Link("Product Page", destination: URL(string: "https://jorviksoftware.cc/\(page)")!)
+                    Link(
+                        L10n.string("about.product_page", defaultValue: "Product Page"),
+                        destination: URL(string: "https://jorviksoftware.cc/\(page)")!
+                    )
                         .font(.caption)
                 }
             }
 
-            Button("Close") {
+            Button(L10n.string("about.close", defaultValue: "Close")) {
                 NSApp.keyWindow?.close()
             }
             .keyboardShortcut(.cancelAction)
@@ -92,7 +104,7 @@ struct JorvikAboutView: View {
         controller.view.layoutSubtreeIfNeeded()
 
         let window = NSWindow(contentViewController: controller)
-        window.title = "About \(appName)"
+        window.title = L10n.format("menu.about_format", defaultValue: "About %@", appName)
         window.styleMask = [.titled, .closable]
         window.isReleasedWhenClosed = false
         window.setContentSize(controller.view.fittingSize)

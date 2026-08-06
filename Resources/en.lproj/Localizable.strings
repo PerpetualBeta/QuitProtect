@@ -1,0 +1,47 @@
+"quit_mode.double_press" = "Double-press ⌘Q";
+"quit_mode.hold_to_quit" = "Hold ⌘Q";
+
+"menu.protection_active" = "Protection Active";
+"menu.mode_format" = "Mode: %@";
+"menu.quits_blocked_format" = "Quits blocked: %@";
+"menu.check_for_updates" = "Check for Updates…";
+"menu.about_format" = "About %@";
+"menu.settings" = "Settings…";
+"menu.quit_format" = "Quit %@";
+
+"settings.quit_mode" = "Quit Mode";
+"settings.mode" = "Mode";
+"settings.hold_duration" = "Hold duration";
+"settings.press_interval" = "Press interval";
+"settings.permissions" = "Permissions";
+"settings.accessibility" = "Accessibility";
+"settings.permission_granted" = "Granted";
+"settings.grant_access" = "Grant Access";
+"settings.menu_bar" = "Menu Bar";
+"settings.show_menu_bar_icon" = "Show icon in menu bar";
+"settings.restore_menu_bar_icon_format" = "Re-open %@ from your Applications folder to bring the icon back.";
+"settings.menu_bar_icon" = "Menu Bar Icon";
+"settings.show_background_pill" = "Show background pill";
+"settings.title_format" = "%@ Settings";
+"settings.general" = "General";
+"settings.launch_at_login" = "Launch at Login";
+"settings.done" = "Done";
+
+"duration.0.3_seconds" = "0.3s";
+"duration.0.4_seconds" = "0.4s";
+"duration.0.5_seconds" = "0.5s";
+"duration.0.75_seconds" = "0.75s";
+"duration.1.0_seconds" = "1.0s";
+"duration.1.5_seconds" = "1.5s";
+"duration.2.0_seconds" = "2.0s";
+
+"about.version_format" = "Version %@";
+"about.public_domain" = "Public Domain — No Rights Reserved";
+"about.license_details" = "Do whatever you like with this.\nSource code included. No attribution required.\nNo conditions. Yours.";
+"about.source_code" = "Source Code";
+"about.product_page" = "Product Page";
+"about.close" = "Close";
+
+"shortcut.press" = "Press shortcut…";
+"shortcut.cancel" = "Cancel";
+"shortcut.change" = "Change…";

@@ -9,7 +9,7 @@ struct JorvikSettingsView<AppSettings: View>: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Text("\(appName) Settings")
+            Text(L10n.format("settings.title_format", defaultValue: "%@ Settings", appName))
                 .font(.headline)
                 .padding(.top, 16)
                 .padding(.bottom, 8)
@@ -18,8 +18,11 @@ struct JorvikSettingsView<AppSettings: View>: View {
                 // App-specific settings first (if any)
                 appSettings()
 
-                Section("General") {
-                    Toggle("Launch at Login", isOn: $launchAtLogin)
+                Section(L10n.string("settings.general", defaultValue: "General")) {
+                    Toggle(
+                        L10n.string("settings.launch_at_login", defaultValue: "Launch at Login"),
+                        isOn: $launchAtLogin
+                    )
                         .onChange(of: launchAtLogin) { _, newValue in
                             do {
                                 if newValue {
@@ -38,7 +41,7 @@ struct JorvikSettingsView<AppSettings: View>: View {
 
             HStack {
                 Spacer()
-                Button("Done") {
+                Button(L10n.string("settings.done", defaultValue: "Done")) {
                     NSApp.keyWindow?.close()
                 }
                 .keyboardShortcut(.cancelAction)
@@ -80,7 +83,7 @@ struct JorvikSettingsView<AppSettings: View>: View {
         let size = NSSize(width: max(fittingSize.width, 420), height: max(fittingSize.height, 400))
 
         let window = NSWindow(contentViewController: controller)
-        window.title = "\(appName) Settings"
+        window.title = L10n.format("settings.title_format", defaultValue: "%@ Settings", appName)
         window.styleMask = [.titled, .closable]
         window.isReleasedWhenClosed = false
         window.setContentSize(size)
