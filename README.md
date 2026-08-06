@@ -28,6 +28,8 @@ There are two protection modes:
 
 The first ⌘Q is consumed silently. Press ⌘Q again within the configured interval to actually quit. If you don't press again, nothing happens — the quit is blocked.
 
+Optionally, enable **Show quit guidance** in Settings to display a non-activating overlay after the first press. The overlay reminds you to press ⌘Q again without taking focus away from the app you were using.
+
 | Interval | Description |
 |----------|-------------|
 | 0.3s | Fast — requires quick double-tap |
@@ -38,6 +40,8 @@ The first ⌘Q is consumed silently. Press ⌘Q again within the configured inte
 ### Hold ⌘Q
 
 Hold ⌘Q for the configured duration to quit. Anything shorter is blocked.
+
+When **Show quit guidance** is enabled, the overlay remains visible for the configured hold duration.
 
 | Duration | Description |
 |----------|-------------|

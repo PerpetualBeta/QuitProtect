@@ -12,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private var statusItem: NSStatusItem?
     let engine = QuitProtectEngine()
+    private let quitToastController = QuitToastController()
 
     // @ObservationIgnored — @Observable's macro can't transform `lazy`,
     // and Sparkle's controller isn't observable state.
@@ -72,6 +73,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // waits for it, or revoked mid-session. This replaces a second two-second timer that existed
         // only to poll `isActive` on the icon's behalf, duplicating the engine's own.
         engine.onProtectionChanged = { [weak self] in self?.updateIcon() }
+
+        engine.onProtectionTriggered = { [weak self] mode in
+            Task { @MainActor in
+                guard let self, QuitToastSettings.isEnabled else { return }
+                let duration = switch mode {
+                case .doublePress: max(1.0, self.doublePressInterval + 0.4)
+                case .holdToQuit: self.holdDuration + 0.3
+                }
+                self.quitToastController.show(mode: mode, duration: duration)
+            }
+        }
 
         // Start the engine (it watches for permission itself if it isn't granted yet)
         engine.start(mode: quitMode, holdDuration: holdDuration, doublePressInterval: doublePressInterval)

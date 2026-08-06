@@ -38,8 +38,8 @@ private var _blockedCount: Int = 0
 // Tap reference for re-enable
 private var _quitProtectTap: CFMachPort?
 
-// Callback to notify UI of blocked quit
-private var _onBlocked: (() -> Void)?
+// Callback to notify UI when a quit confirmation gesture starts
+private var _onProtectionTriggered: ((QuitMode) -> Void)?
 
 // MARK: - CGEvent tap callback
 
@@ -127,6 +127,9 @@ private func handleDoublePress(type: CGEventType, event: CGEvent) -> Unmanaged<C
     // First press — block and start waiting
     _waitingForSecondPress = true
     _lastQKeyDownTime = now
+    DispatchQueue.main.async {
+        _onProtectionTriggered?(.doublePress)
+    }
 
     // Count as blocked only if the user doesn't follow through
     let interval = _doublePressInterval
@@ -151,6 +154,9 @@ private func handleHold(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>
             _qKeyIsHeld = true
             _qKeyDownStart = CFAbsoluteTimeGetCurrent()
             _holdConfirmed = false
+            DispatchQueue.main.async {
+                _onProtectionTriggered?(.holdToQuit)
+            }
         } else if isRepeat && !_holdConfirmed {
             // Check if held long enough
             let elapsed = CFAbsoluteTimeGetCurrent() - _qKeyDownStart
@@ -187,6 +193,9 @@ final class QuitProtectEngine {
     /// We *believe* protection is up: permission was granted and the tap was created.
     var isActive: Bool = false
     var blockedCount: Int { _blockedCount }
+    var onProtectionTriggered: ((QuitMode) -> Void)? {
+        didSet { _onProtectionTriggered = onProtectionTriggered }
+    }
 
     /// Is protection ACTUALLY in force, this instant?
     ///
