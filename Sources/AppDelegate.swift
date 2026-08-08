@@ -224,6 +224,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 doublePressInterval: doublePressInterval,
                 promptForPermission: false
             )
+            if !engine.isActive && !engine.permissionGranted {
+                openSettings()
+            }
         }
         updateIcon()
     }
