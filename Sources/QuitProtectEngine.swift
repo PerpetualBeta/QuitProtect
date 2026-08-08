@@ -193,9 +193,6 @@ final class QuitProtectEngine {
     /// We *believe* protection is up: permission was granted and the tap was created.
     var isActive: Bool = false
     var blockedCount: Int { _blockedCount }
-    var onProtectionTriggered: ((QuitMode) -> Void)? {
-        didSet { _onProtectionTriggered = onProtectionTriggered }
-    }
 
     /// Is protection ACTUALLY in force, this instant?
     ///
@@ -255,6 +252,10 @@ final class QuitProtectEngine {
     }
 
     // MARK: - Public API
+
+    func setProtectionTriggeredHandler(_ handler: @escaping (QuitMode) -> Void) {
+        _onProtectionTriggered = handler
+    }
 
     func start(mode: QuitMode, holdDuration: Double, doublePressInterval: Double) {
         // A tap can die without a permission change. Clear the stale state first, or this becomes a

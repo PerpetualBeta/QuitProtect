@@ -74,7 +74,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // only to poll `isActive` on the icon's behalf, duplicating the engine's own.
         engine.onProtectionChanged = { [weak self] in self?.updateIcon() }
 
-        engine.onProtectionTriggered = { [weak self] mode in
+        engine.setProtectionTriggeredHandler { [weak self] mode in
             Task { @MainActor in
                 guard let self, QuitToastSettings.isEnabled else { return }
                 let duration = switch mode {
