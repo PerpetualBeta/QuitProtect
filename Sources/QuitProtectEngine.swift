@@ -194,12 +194,7 @@ final class QuitProtectEngine {
 
     // MARK: - Public API
 
-    func start(
-        mode: QuitMode,
-        holdDuration: Double,
-        doublePressInterval: Double,
-        promptForPermission: Bool
-    ) {
+    func start(mode: QuitMode, holdDuration: Double, doublePressInterval: Double) {
         guard !isActive else { return }
 
         _quitMode = mode
@@ -213,12 +208,10 @@ final class QuitProtectEngine {
         pendingHoldDuration = holdDuration
         pendingDoublePressInterval = doublePressInterval
 
-        let trusted: Bool
-        if promptForPermission {
+        var trusted = AXIsProcessTrusted()
+        if !trusted {
             let options = [kAXTrustedCheckOptionPrompt.takeRetainedValue(): true] as CFDictionary
             trusted = AXIsProcessTrustedWithOptions(options)
-        } else {
-            trusted = AXIsProcessTrusted()
         }
         permissionGranted = trusted
 
