@@ -81,7 +81,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 case .doublePress: max(1.0, self.doublePressInterval + 0.4)
                 case .holdToQuit: self.holdDuration + 0.3
                 }
-                self.quitToastController.show(mode: mode, duration: duration)
+                self.quitToastController.show(
+                    mode: mode,
+                    duration: duration,
+                    doublePressInterval: self.doublePressInterval
+                )
             }
         }
 

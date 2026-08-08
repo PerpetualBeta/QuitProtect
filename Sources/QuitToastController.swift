@@ -11,6 +11,14 @@ private enum QuitToastL10n {
             comment: ""
         )
     }
+
+    static func format(_ key: String, defaultValue: String, _ arguments: CVarArg...) -> String {
+        String(
+            format: string(key, defaultValue: defaultValue),
+            locale: Locale.current,
+            arguments: arguments
+        )
+    }
 }
 
 private final class QuitToastPanel: NSPanel {
@@ -66,7 +74,11 @@ final class QuitToastController {
         panel.animationBehavior = .none
     }
 
-    func show(mode: QuitMode, duration: TimeInterval) {
+    func show(
+        mode: QuitMode,
+        duration: TimeInterval,
+        doublePressInterval: TimeInterval
+    ) {
         dismissWorkItem?.cancel()
         displayGeneration += 1
         let generation = displayGeneration
@@ -74,9 +86,13 @@ final class QuitToastController {
         let message: String
         switch mode {
         case .doublePress:
-            message = QuitToastL10n.string(
+            let interval = doublePressInterval.formatted(
+                .number.precision(.fractionLength(1...2))
+            )
+            message = QuitToastL10n.format(
                 "toast.double_press",
-                defaultValue: "Press ⌘Q again to quit"
+                defaultValue: "Press ⌘Q again within %@ seconds to quit",
+                interval
             )
         case .holdToQuit:
             message = QuitToastL10n.string(
