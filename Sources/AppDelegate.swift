@@ -69,7 +69,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         // Start the engine (permission polling will auto-start when granted)
-        engine.start(mode: quitMode, holdDuration: holdDuration, doublePressInterval: doublePressInterval)
+        engine.start(
+            mode: quitMode,
+            holdDuration: holdDuration,
+            doublePressInterval: doublePressInterval,
+            promptForPermission: true
+        )
 
         // Poll for isActive to update icon once permission is granted and tap is created
         Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] timer in
@@ -213,7 +218,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if engine.isActive {
             engine.stop()
         } else {
-            engine.start(mode: quitMode, holdDuration: holdDuration, doublePressInterval: doublePressInterval)
+            engine.start(
+                mode: quitMode,
+                holdDuration: holdDuration,
+                doublePressInterval: doublePressInterval,
+                promptForPermission: false
+            )
         }
         updateIcon()
     }
