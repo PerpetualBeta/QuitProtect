@@ -46,9 +46,15 @@ private struct QuitToastView: View {
 
 @MainActor
 final class QuitToastController {
+    // Short confirmation windows would otherwise make the overlay almost entirely
+    // fade animation and physically unreadable.
+    private static let minimumVisibleDuration: TimeInterval = 0.6
+
     private let panel: QuitToastPanel
     private var dismissWorkItem: DispatchWorkItem?
     private var displayGeneration = 0
+    private var shownAt: CFAbsoluteTime?
+    private var isVisible = false
 
     init() {
         panel = QuitToastPanel(
@@ -76,12 +82,12 @@ final class QuitToastController {
 
     func show(
         mode: QuitMode,
-        duration: TimeInterval,
         doublePressInterval: TimeInterval
     ) {
         dismissWorkItem?.cancel()
+        dismissWorkItem = nil
         displayGeneration += 1
-        let generation = displayGeneration
+        shownAt = CFAbsoluteTimeGetCurrent()
 
         let message: String
         switch mode {
@@ -108,19 +114,36 @@ final class QuitToastController {
         panel.setContentSize(size)
         positionPanel(size: size)
 
+        if isVisible {
+            // Match the system HUDs: refresh content in place instead of blanking a
+            // visible panel and starting its fade-in again.
+            panel.alphaValue = 1
+            panel.orderFrontRegardless()
+            return
+        }
+
+        isVisible = true
         panel.alphaValue = 0
         panel.orderFrontRegardless()
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.12
             panel.animator().alphaValue = 1
         }
+    }
 
+    func resolve() {
+        guard isVisible, let shownAt else { return }
+        dismissWorkItem?.cancel()
+
+        let generation = displayGeneration
+        let elapsed = CFAbsoluteTimeGetCurrent() - shownAt
+        let delay = max(Self.minimumVisibleDuration - elapsed, 0)
         let workItem = DispatchWorkItem { [weak self] in
             self?.hide(generation: generation)
         }
         dismissWorkItem = workItem
         DispatchQueue.main.asyncAfter(
-            deadline: .now() + max(duration, 0.5),
+            deadline: .now() + delay,
             execute: workItem
         )
     }
@@ -150,6 +173,8 @@ final class QuitToastController {
             Task { @MainActor [weak self] in
                 guard let self, generation == self.displayGeneration else { return }
                 self.panel.orderOut(nil)
+                self.isVisible = false
+                self.shownAt = nil
             }
         }
     }

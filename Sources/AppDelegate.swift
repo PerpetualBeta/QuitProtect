@@ -74,18 +74,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // only to poll `isActive` on the icon's behalf, duplicating the engine's own.
         engine.onProtectionChanged = { [weak self] in self?.updateIcon() }
 
-        engine.setProtectionTriggeredHandler { [weak self] mode in
+        engine.setQuitGuidanceHandler { [weak self] event in
             Task { @MainActor in
-                guard let self, QuitToastSettings.isEnabled else { return }
-                let duration = switch mode {
-                case .doublePress: max(1.0, self.doublePressInterval + 0.4)
-                case .holdToQuit: self.holdDuration + 0.3
+                guard let self else { return }
+                switch event {
+                case let .began(mode):
+                    guard QuitToastSettings.isEnabled else { return }
+                    self.quitToastController.show(
+                        mode: mode,
+                        doublePressInterval: self.doublePressInterval
+                    )
+                case .resolved:
+                    self.quitToastController.resolve()
                 }
-                self.quitToastController.show(
-                    mode: mode,
-                    duration: duration,
-                    doublePressInterval: self.doublePressInterval
-                )
             }
         }
 

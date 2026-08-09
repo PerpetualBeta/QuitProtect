@@ -41,7 +41,7 @@ Optionally, enable **Show quit guidance** in Settings to display a non-activatin
 
 Hold ⌘Q for the configured duration to quit. Anything shorter is blocked.
 
-When **Show quit guidance** is enabled, the overlay remains visible for the configured hold duration.
+When **Show quit guidance** is enabled, the overlay appears on the initial press and dismisses when the gesture is completed or cancelled.
 
 | Duration | Description |
 |----------|-------------|
