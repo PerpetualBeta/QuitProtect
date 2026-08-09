@@ -148,14 +148,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         // Toggle protection
         actions.append(JorvikMenuBuilder.ActionItem(
-            title: "Protection Active",
+            title: L10n.string("menu.protection_active", defaultValue: "Protection Active"),
             action: #selector(toggleProtection),
             target: self,
             state: engine.isProtecting ? .on : .off
         ))
 
         // Current mode display
-        let modeStr = "Mode: \(quitMode.displayName)"
+        let modeStr = L10n.format(
+            "menu.mode_format",
+            defaultValue: "Mode: %@",
+            quitMode.displayName
+        )
         let modeAttr = NSAttributedString(string: modeStr, attributes: [
             .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
             .foregroundColor: NSColor.secondaryLabelColor
@@ -169,7 +173,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         ))
 
         // Blocked count
-        let countStr = "Quits blocked: \(engine.blockedCount)"
+        let countStr = L10n.format(
+            "menu.quits_blocked_format",
+            defaultValue: "Quits blocked: %@",
+            String(engine.blockedCount)
+        )
         let countAttr = NSAttributedString(string: countStr, attributes: [
             .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
             .foregroundColor: NSColor.secondaryLabelColor
@@ -184,7 +192,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         actions.append(JorvikMenuBuilder.ActionItem(title: "-", action: #selector(noop), target: self))
         actions.append(JorvikMenuBuilder.ActionItem(
-            title: "Check for Updates\u{2026}",
+            title: L10n.string("menu.check_for_updates", defaultValue: "Check for Updates\u{2026}"),
             action: #selector(checkForUpdates(_:)),
             target: self
         ))

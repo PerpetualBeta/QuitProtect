@@ -101,13 +101,20 @@ public struct MenuBarVisibilitySettings: View {
     public var body: some View {
         // Defer to System Settings' native control on macOS 26+.
         if #unavailable(macOS 26.0) {
-            Section("Menu Bar") {
-                Toggle("Show icon in menu bar", isOn: $showIcon)
+            Section(L10n.string("settings.menu_bar", defaultValue: "Menu Bar")) {
+                Toggle(
+                    L10n.string("settings.show_menu_bar_icon", defaultValue: "Show icon in menu bar"),
+                    isOn: $showIcon
+                )
                     .onChange(of: showIcon) { _, newValue in
                         JorvikStatusItemVisibility.setVisible(newValue)
                     }
                 if !showIcon {
-                    Text("Re-open \(appName) from your Applications folder to bring the icon back.")
+                    Text(L10n.format(
+                        "settings.restore_menu_bar_icon_format",
+                        defaultValue: "Re-open %@ from your Applications folder to bring the icon back.",
+                        appName
+                    ))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

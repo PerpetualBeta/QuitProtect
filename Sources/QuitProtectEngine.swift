@@ -9,8 +9,10 @@ enum QuitMode: Int {
 
     var displayName: String {
         switch self {
-        case .doublePress: "Double-press ⌘Q"
-        case .holdToQuit:  "Hold ⌘Q"
+        case .doublePress:
+            L10n.string("quit_mode.double_press", defaultValue: "Double-press ⌘Q")
+        case .holdToQuit:
+            L10n.string("quit_mode.hold_to_quit", defaultValue: "Hold ⌘Q")
         }
     }
 }

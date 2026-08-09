@@ -22,10 +22,10 @@ struct JorvikShortcutRecorder: View {
             Text(label)
             Spacer()
             if isRecording {
-                Text("Press shortcut\u{2026}")
+                Text(L10n.string("shortcut.press", defaultValue: "Press shortcut\u{2026}"))
                     .foregroundStyle(.orange)
                     .font(.caption)
-                Button("Cancel") {
+                Button(L10n.string("shortcut.cancel", defaultValue: "Cancel")) {
                     stopRecording()
                 }
                 .font(.caption)
@@ -33,7 +33,7 @@ struct JorvikShortcutRecorder: View {
                 Text(shortcutText)
                     .foregroundStyle(.secondary)
                     .font(.caption)
-                Button("Change\u{2026}") {
+                Button(L10n.string("shortcut.change", defaultValue: "Change\u{2026}")) {
                     startRecording()
                 }
                 .font(.caption)
