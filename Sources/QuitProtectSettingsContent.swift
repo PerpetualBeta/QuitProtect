@@ -30,7 +30,7 @@ struct QuitProtectSettingsContent: View {
                         Text(L10n.string("duration.2.0_seconds", defaultValue: "2.0s")).tag(2.0)
                     }
                     .labelsHidden()
-                    .frame(width: 110)
+                    .fixedSize()
                 }
             }
 
@@ -48,7 +48,7 @@ struct QuitProtectSettingsContent: View {
                         Text(L10n.string("duration.0.75_seconds", defaultValue: "0.75s")).tag(0.75)
                     }
                     .labelsHidden()
-                    .frame(width: 110)
+                    .fixedSize()
                 }
             }
         }

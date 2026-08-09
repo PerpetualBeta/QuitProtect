@@ -3,7 +3,7 @@
 
 "menu.protection_active" = "启用退出保护";
 "menu.mode_format" = "模式：%@";
-"menu.quits_blocked_format" = "已阻止退出：%@ 次";
+"menu.quits_blocked_format" = "已阻止退出 %@ 次";
 "menu.check_for_updates" = "检查更新…";
 "menu.about_format" = "关于 %@";
 "menu.settings" = "设置…";
@@ -11,7 +11,7 @@
 
 "settings.quit_mode" = "退出模式";
 "settings.mode" = "模式";
-"settings.hold_duration" = "长按时长";
+"settings.hold_duration" = "按住时长";
 "settings.press_interval" = "连按间隔";
 "settings.permissions" = "权限";
 "settings.accessibility" = "辅助功能";
@@ -21,7 +21,7 @@
 "settings.show_menu_bar_icon" = "在菜单栏中显示图标";
 "settings.restore_menu_bar_icon_format" = "若要恢复图标，请从“应用程序”文件夹中重新打开 %@。";
 "settings.menu_bar_icon" = "菜单栏图标";
-"settings.show_background_pill" = "显示胶囊背景";
+"settings.show_background_pill" = "显示背景胶囊";
 "settings.title_format" = "%@ 设置";
 "settings.general" = "通用";
 "settings.launch_at_login" = "登录时启动";
@@ -39,7 +39,7 @@
 "about.public_domain" = "公共领域——不保留任何权利";
 "about.license_details" = "你可以自由使用本软件。\n源代码已公开，无需署名。\n没有附加条件。";
 "about.source_code" = "源代码";
-"about.product_page" = "产品主页";
+"about.product_page" = "产品页面";
 "about.close" = "关闭";
 
 "shortcut.press" = "请按下快捷键…";

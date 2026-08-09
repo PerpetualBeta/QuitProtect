@@ -1,7 +1,7 @@
 import Foundation
 
-enum L10n {
-    static func string(_ key: String, defaultValue: String) -> String {
+public enum L10n {
+    public static func string(_ key: String, defaultValue: String) -> String {
         NSLocalizedString(
             key,
             tableName: "Localizable",
@@ -11,7 +11,7 @@ enum L10n {
         )
     }
 
-    static func format(_ key: String, defaultValue: String, _ arguments: CVarArg...) -> String {
+    public static func format(_ key: String, defaultValue: String, _ arguments: CVarArg...) -> String {
         String(
             format: string(key, defaultValue: defaultValue),
             locale: Locale.current,
