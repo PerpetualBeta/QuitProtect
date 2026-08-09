@@ -17,6 +17,11 @@ enum QuitMode: Int {
     }
 }
 
+enum QuitGuidanceEvent {
+    case began(QuitMode)
+    case resolved
+}
+
 // MARK: - Module-level state for C-compatible CGEvent tap callback
 
 private var _quitMode: QuitMode = .doublePress
@@ -38,8 +43,14 @@ private var _blockedCount: Int = 0
 // Tap reference for re-enable
 private var _quitProtectTap: CFMachPort?
 
-// Callback to notify UI of blocked quit
-private var _onBlocked: (() -> Void)?
+// Callback to keep optional UI guidance aligned with the active quit gesture
+private var _onQuitGuidanceEvent: ((QuitGuidanceEvent) -> Void)?
+
+private func notifyQuitGuidance(_ event: QuitGuidanceEvent) {
+    DispatchQueue.main.async {
+        _onQuitGuidanceEvent?(event)
+    }
+}
 
 // MARK: - CGEvent tap callback
 
@@ -51,6 +62,7 @@ private func quitProtectCallback(
 ) -> Unmanaged<CGEvent>? {
     // Auto-re-enable if macOS disabled the tap
     if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+        notifyQuitGuidance(.resolved)
         if let tap = _quitProtectTap {
             CGEvent.tapEnable(tap: tap, enable: true)
         }
@@ -73,6 +85,9 @@ private func quitProtectCallback(
         if _qKeyIsHeld && !_holdConfirmed {
             _blockedCount += 1
         }
+        if _qKeyIsHeld {
+            notifyQuitGuidance(.resolved)
+        }
         _qKeyIsHeld = false
         _holdConfirmed = false
         return nil
@@ -84,6 +99,7 @@ private func quitProtectCallback(
             if !_holdConfirmed { _blockedCount += 1 }
             _qKeyIsHeld = false
             _holdConfirmed = false
+            notifyQuitGuidance(.resolved)
         }
         return Unmanaged.passRetained(event)
     }
@@ -121,12 +137,14 @@ private func handleDoublePress(type: CGEventType, event: CGEvent) -> Unmanaged<C
         // Second press within window — allow the quit through
         _waitingForSecondPress = false
         _lastQKeyDownTime = 0
+        notifyQuitGuidance(.resolved)
         return Unmanaged.passRetained(event)
     }
 
     // First press — block and start waiting
     _waitingForSecondPress = true
     _lastQKeyDownTime = now
+    notifyQuitGuidance(.began(.doublePress))
 
     // Count as blocked only if the user doesn't follow through
     let interval = _doublePressInterval
@@ -134,6 +152,7 @@ private func handleDoublePress(type: CGEventType, event: CGEvent) -> Unmanaged<C
         if _waitingForSecondPress && (CFAbsoluteTimeGetCurrent() - _lastQKeyDownTime) >= interval {
             _waitingForSecondPress = false
             _blockedCount += 1
+            notifyQuitGuidance(.resolved)
         }
     }
 
@@ -151,11 +170,13 @@ private func handleHold(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>
             _qKeyIsHeld = true
             _qKeyDownStart = CFAbsoluteTimeGetCurrent()
             _holdConfirmed = false
+            notifyQuitGuidance(.began(.holdToQuit))
         } else if isRepeat && !_holdConfirmed {
             // Check if held long enough
             let elapsed = CFAbsoluteTimeGetCurrent() - _qKeyDownStart
             if elapsed >= _holdDuration {
                 _holdConfirmed = true
+                notifyQuitGuidance(.resolved)
                 // Synthesise ⌘Q to actually quit the app
                 if let qDown = CGEvent(keyboardEventSource: nil, virtualKey: 12, keyDown: true),
                    let qUp = CGEvent(keyboardEventSource: nil, virtualKey: 12, keyDown: false) {
@@ -247,6 +268,10 @@ final class QuitProtectEngine {
 
     // MARK: - Public API
 
+    func setQuitGuidanceHandler(_ handler: @escaping (QuitGuidanceEvent) -> Void) {
+        _onQuitGuidanceEvent = handler
+    }
+
     func start(mode: QuitMode, holdDuration: Double, doublePressInterval: Double) {
         // A tap can die without a permission change. Clear the stale state first, or this becomes a
         // no-op and the user is left staring at an inactive icon they just clicked.
@@ -298,6 +323,7 @@ final class QuitProtectEngine {
     }
 
     func stop() {
+        notifyQuitGuidance(.resolved)
         isActive = false
         permissionTimer?.invalidate()
         permissionTimer = nil
@@ -314,6 +340,7 @@ final class QuitProtectEngine {
     }
 
     func updateMode(_ mode: QuitMode) {
+        notifyQuitGuidance(.resolved)
         _quitMode = mode
         _waitingForSecondPress = false
         _qKeyIsHeld = false

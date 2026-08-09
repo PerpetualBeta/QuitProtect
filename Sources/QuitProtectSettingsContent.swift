@@ -2,6 +2,7 @@ import SwiftUI
 
 struct QuitProtectSettingsContent: View {
     let delegate: AppDelegate
+    @State private var showQuitGuidance = QuitToastSettings.isEnabled
 
     var body: some View {
         Section(L10n.string("settings.quit_mode", defaultValue: "Quit Mode")) {
@@ -51,6 +52,11 @@ struct QuitProtectSettingsContent: View {
                     .fixedSize()
                 }
             }
+
+            Toggle(QuitToastSettings.label, isOn: $showQuitGuidance)
+                .onChange(of: showQuitGuidance) { _, newValue in
+                    QuitToastSettings.isEnabled = newValue
+                }
         }
 
         Section(L10n.string("settings.permissions", defaultValue: "Permissions")) {

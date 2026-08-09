@@ -13,6 +13,7 @@
 "settings.mode" = "Mode";
 "settings.hold_duration" = "Hold duration";
 "settings.press_interval" = "Press interval";
+"settings.show_quit_guidance" = "Show quit guidance";
 "settings.permissions" = "Permissions";
 "settings.accessibility" = "Accessibility";
 "settings.permission_granted" = "Granted";
@@ -34,6 +35,9 @@
 "duration.1.0_seconds" = "1.0s";
 "duration.1.5_seconds" = "1.5s";
 "duration.2.0_seconds" = "2.0s";
+
+"toast.double_press" = "Press ⌘Q again within %@ seconds to quit";
+"toast.hold_to_quit" = "Keep holding ⌘Q to quit";
 
 "about.version_format" = "Version %@";
 "about.public_domain" = "Public Domain — No Rights Reserved";
