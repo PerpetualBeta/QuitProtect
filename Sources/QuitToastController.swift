@@ -1,26 +1,6 @@
 import AppKit
 import SwiftUI
 
-private enum QuitToastL10n {
-    static func string(_ key: String, defaultValue: String) -> String {
-        NSLocalizedString(
-            key,
-            tableName: "Toast",
-            bundle: .main,
-            value: defaultValue,
-            comment: ""
-        )
-    }
-
-    static func format(_ key: String, defaultValue: String, _ arguments: CVarArg...) -> String {
-        String(
-            format: string(key, defaultValue: defaultValue),
-            locale: Locale.current,
-            arguments: arguments
-        )
-    }
-}
-
 private final class QuitToastPanel: NSPanel {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
@@ -95,13 +75,13 @@ final class QuitToastController {
             let interval = doublePressInterval.formatted(
                 .number.precision(.fractionLength(1...2))
             )
-            message = QuitToastL10n.format(
+            message = L10n.format(
                 "toast.double_press",
                 defaultValue: "Press ⌘Q again within %@ seconds to quit",
                 interval
             )
         case .holdToQuit:
-            message = QuitToastL10n.string(
+            message = L10n.string(
                 "toast.hold_to_quit",
                 defaultValue: "Keep holding ⌘Q to quit"
             )
@@ -189,7 +169,7 @@ enum QuitToastSettings {
     }
 
     static var label: String {
-        QuitToastL10n.string(
+        L10n.string(
             "settings.show_quit_guidance",
             defaultValue: "Show quit guidance"
         )

@@ -13,6 +13,7 @@
 "settings.mode" = "模式";
 "settings.hold_duration" = "按住时长";
 "settings.press_interval" = "连按间隔";
+"settings.show_quit_guidance" = "显示退出操作提示";
 "settings.permissions" = "权限";
 "settings.accessibility" = "辅助功能";
 "settings.permission_granted" = "已授权";
@@ -34,6 +35,9 @@
 "duration.1.0_seconds" = "1.0 秒";
 "duration.1.5_seconds" = "1.5 秒";
 "duration.2.0_seconds" = "2.0 秒";
+
+"toast.double_press" = "请在 %@ 秒内再次按下 ⌘Q 退出";
+"toast.hold_to_quit" = "继续按住 ⌘Q 退出";
 
 "about.version_format" = "版本 %@";
 "about.public_domain" = "公共领域——不保留任何权利";
