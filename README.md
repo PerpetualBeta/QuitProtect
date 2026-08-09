@@ -74,6 +74,7 @@ Switch between double-press and hold-to-quit using the radio buttons. The timing
 ### General
 
 - **Accessibility** — permission status and grant button
+- **Show quit guidance** — a small overlay on the first ⌘Q telling you what to do next, off by default. It does not take focus from the app you were using, and it disappears the moment the gesture completes or lapses rather than lingering
 - **Show icon in menu bar** — hides the power icon in the menu bar while QuitProtect keeps running in the background, still protecting against accidental quits. Your choice persists across launches, including login auto-start. *Shown only on macOS 14–15 — on macOS 26 (Tahoe) and later, use System Settings → Menu Bar, which provides this natively.*
 - **Menu bar icon pill** — optional grey background for stronger contrast on busy or wallpaper-tinted menu bars (off by default)
 - **Launch at Login** — start automatically when you log in
@@ -144,9 +145,17 @@ This was fixed in v1.0 — the engine now resets state correctly when ⌘ is rel
 
 ## Acknowledgements
 
-The Simplified Chinese localisation was contributed by [RSS1102](https://github.com/RSS1102) — not only the
-translation, but the move of the string handling into the shared JorvikKit toolkit, so every other Jorvik app
-can now be localised the same way. That second part was unasked-for and is the more valuable of the two.
+[RSS1102](https://github.com/RSS1102) contributed the Simplified Chinese localisation and the quit guidance
+overlay.
+
+The localisation went further than translation: the string handling moved into the shared JorvikKit toolkit,
+so every other Jorvik app can now be localised the same way. That part was unasked-for and is the more
+valuable of the two.
+
+The overlay is worth a word too. Its first revision padded the on-screen time with tuned constants; the
+version that shipped removed them, because once the engine reports when a gesture resolves there is nothing
+left to guess — only a single minimum readable duration, which is derived from legibility rather than taste.
+Diagnosing *why* a constant exists before naming it is the harder half, and rarer.
 
 ---
 
