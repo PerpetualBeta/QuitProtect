@@ -68,17 +68,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             Task { @MainActor in self?.applyStatusItemVisibility() }
         }
 
-        // Start the engine (permission polling will auto-start when granted)
-        engine.start(mode: quitMode, holdDuration: holdDuration, doublePressInterval: doublePressInterval)
+        // Follow protection coming up or going down on its own — permission granted while the engine
+        // waits for it, or revoked mid-session. This replaces a second two-second timer that existed
+        // only to poll `isActive` on the icon's behalf, duplicating the engine's own.
+        engine.onProtectionChanged = { [weak self] in self?.updateIcon() }
 
-        // Poll for isActive to update icon once permission is granted and tap is created
-        Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] timer in
-            Task { @MainActor in
-                guard let self else { timer.invalidate(); return }
-                self.updateIcon()
-                if self.engine.isActive { timer.invalidate() }
-            }
-        }
+        // Start the engine (it watches for permission itself if it isn't granted yet)
+        engine.start(mode: quitMode, holdDuration: holdDuration, doublePressInterval: doublePressInterval)
+        updateIcon()
 
         // Redraw the status icon when the display configuration changes — the
         // menu bar's effective thickness can shrink (e.g. moving from a notched
@@ -135,7 +132,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: - Icon
 
     func updateIcon() {
-        let symbolName = engine.isActive ? "power.circle.fill" : "power.circle"
+        let symbolName = engine.isProtecting ? "power.circle.fill" : "power.circle"
         statusItem?.button?.image = JorvikMenuBarPill.icon(
             symbolName: symbolName,
             accessibilityDescription: "QuitProtect"
@@ -154,7 +151,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             title: "Protection Active",
             action: #selector(toggleProtection),
             target: self,
-            state: engine.isActive ? .on : .off
+            state: engine.isProtecting ? .on : .off
         ))
 
         // Current mode display
@@ -210,7 +207,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: - Actions
 
     @objc private func toggleProtection() {
-        if engine.isActive {
+        if engine.isProtecting {
             engine.stop()
         } else {
             engine.start(mode: quitMode, holdDuration: holdDuration, doublePressInterval: doublePressInterval)

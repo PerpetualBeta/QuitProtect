@@ -182,19 +182,73 @@ private func handleHold(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>
 @MainActor
 @Observable
 final class QuitProtectEngine {
+    /// We *believe* protection is up: permission was granted and the tap was created.
     var isActive: Bool = false
-    var permissionGranted: Bool = false
     var blockedCount: Int { _blockedCount }
+
+    /// Is protection ACTUALLY in force, this instant?
+    ///
+    /// `isActive` records that we started successfully. It is not evidence that we still are. macOS
+    /// invalidates the event tap the moment Accessibility permission is revoked, and nothing tells the
+    /// app — the callback simply stops being called. Until this existed, revoking permission left the
+    /// menu bar showing a filled icon and a ticked "Protection Active" over a dead tap, which is the
+    /// one lie an app like this must never tell.
+    ///
+    /// Probed rather than remembered, so it stays honest even if the notification below never arrives.
+    var isProtecting: Bool {
+        guard isActive, let tap = eventTap, CFMachPortIsValid(tap) else { return false }
+        return CGEvent.tapIsEnabled(tap: tap)
+    }
+
+    /// Fired when protection comes up or goes down without the user asking — permission granted while
+    /// we were waiting for it, or revoked mid-session. Neither is user-initiated, so the menu-bar icon
+    /// has no other way to find out.
+    @ObservationIgnored var onProtectionChanged: (() -> Void)?
+
+    /// How often to re-check for a permission grant. There is no push notification for the grant
+    /// itself, only for the database changing, so this is the floor on how long a user waits after
+    /// ticking the box in System Settings.
+    private static let permissionPollInterval: TimeInterval = 2.0
 
     private var eventTap: CFMachPort?
     private var permissionTimer: Timer?
-    private var pendingMode: QuitMode = .doublePress
-    private var pendingHoldDuration: Double = 1.0
-    private var pendingDoublePressInterval: Double = 0.4
+    @ObservationIgnored private var trustObserver: NSObjectProtocol?
+
+    // MARK: - Lifecycle
+
+    /// Registered for the life of the process — the engine is owned by the app delegate and outlives
+    /// every other object here, so there is no teardown to pair this with.
+    init() {
+        trustObserver = DistributedNotificationCenter.default().addObserver(
+            forName: NSNotification.Name("com.apple.accessibility.api"),
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.handleTrustChange() }
+        }
+    }
+
+    /// React to the Accessibility permission database changing.
+    ///
+    /// `com.apple.accessibility.api` is undocumented but long-standing, and is the only push signal
+    /// macOS offers here. It is treated as a prompt to go and look rather than as truth in itself:
+    /// `isProtecting` probes the tap directly, so if this notification ever stopped arriving the UI
+    /// would still tell the truth the next time it drew.
+    private func handleTrustChange() {
+        guard isActive, !AXIsProcessTrusted() else { return }
+
+        // Revoked mid-session. The tap is already dead — clear the rest of the state and go back to
+        // watching, so protection restores itself if the user grants permission again.
+        stop()
+        beginPollingForPermission()
+        onProtectionChanged?()
+    }
 
     // MARK: - Public API
 
     func start(mode: QuitMode, holdDuration: Double, doublePressInterval: Double) {
+        // A tap can die without a permission change. Clear the stale state first, or this becomes a
+        // no-op and the user is left staring at an inactive icon they just clicked.
+        if isActive && !isProtecting { stop() }
         guard !isActive else { return }
 
         _quitMode = mode
@@ -204,31 +258,39 @@ final class QuitProtectEngine {
         _qKeyIsHeld = false
         _holdConfirmed = false
 
-        pendingMode = mode
-        pendingHoldDuration = holdDuration
-        pendingDoublePressInterval = doublePressInterval
-
         let options = [kAXTrustedCheckOptionPrompt.takeRetainedValue(): true] as CFDictionary
-        let trusted = AXIsProcessTrustedWithOptions(options)
-        permissionGranted = trusted
 
-        if trusted {
-            if tryCreateEventTap() {
-                isActive = true
-            }
+        if AXIsProcessTrustedWithOptions(options), tryCreateEventTap() {
+            isActive = true
         } else {
-            // Poll until permission is granted
-            permissionTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] timer in
-                if AXIsProcessTrusted() {
-                    Task { @MainActor in
-                        guard let self else { return }
-                        self.permissionGranted = true
-                        if self.tryCreateEventTap() {
-                            self.isActive = true
-                        }
-                    }
-                    timer.invalidate()
-                }
+            // Either permission is missing, or it is granted and the tap would not create anyway.
+            // Both want the same treatment: keep watching. The second case used to fall through to
+            // nothing at all, leaving the app inert with no protection and no path back to it.
+            beginPollingForPermission()
+        }
+    }
+
+    /// Watch for permission to appear, then bring protection up.
+    ///
+    /// Stands the old timer down first. `start()` guards only on `!isActive`, so before this every
+    /// toggle of the menu item while unpermitted left another live timer behind — five toggles, five
+    /// timers, all polling forever.
+    private func beginPollingForPermission() {
+        permissionTimer?.invalidate()
+        permissionTimer = Timer.scheduledTimer(
+            withTimeInterval: Self.permissionPollInterval, repeats: true
+        ) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                guard AXIsProcessTrusted(), self.tryCreateEventTap() else { return }
+
+                // Retire the timer only once the tap genuinely exists. Retiring it on trust alone left
+                // no retry if creation then failed — and because creation was deferred onto the main
+                // actor, the timer had already gone by the time the answer was known.
+                self.permissionTimer?.invalidate()
+                self.permissionTimer = nil
+                self.isActive = true
+                self.onProtectionChanged?()
             }
         }
     }
@@ -237,7 +299,9 @@ final class QuitProtectEngine {
         isActive = false
         permissionTimer?.invalidate()
         permissionTimer = nil
-        if let tap = eventTap {
+        // Validity-checked because the revocation path arrives here with a port macOS has already
+        // invalidated underneath us — this is not only reached by a deliberate switch-off.
+        if let tap = eventTap, CFMachPortIsValid(tap) {
             CGEvent.tapEnable(tap: tap, enable: false)
         }
         eventTap = nil
