@@ -80,7 +80,10 @@ Auto-updates are handled by Sparkle. Use the **Check for Updates…** entry in t
 
 ## Languages
 
-QuitProtect follows your macOS language preference and currently includes English and Simplified Chinese.
+QuitProtect follows your macOS language preference. English and **Simplified Chinese** (简体中文) are
+included; every other language, Traditional Chinese among them, falls back to English.
+
+Simplified Chinese was contributed by [RSS1102](https://github.com/RSS1102).
 
 ## Permissions
 
@@ -134,6 +137,12 @@ The engine is waiting for Accessibility permission. Check System Settings → Pr
 ### Keys feel stuck after ⌘Q
 
 This was fixed in v1.0 — the engine now resets state correctly when ⌘ is released before Q. If you experience this, ensure you're running the latest version.
+
+## Acknowledgements
+
+The Simplified Chinese localisation was contributed by [RSS1102](https://github.com/RSS1102) — not only the
+translation, but the move of the string handling into the shared JorvikKit toolkit, so every other Jorvik app
+can now be localised the same way. That second part was unasked-for and is the more valuable of the two.
 
 ---
 
