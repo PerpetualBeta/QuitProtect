@@ -4,6 +4,10 @@ struct QuitProtectSettingsContent: View {
     let delegate: AppDelegate
     @State private var showQuitGuidance = QuitToastSettings.isEnabled
 
+    /// Kept current by JorvikKit — see `JorvikPermissionWatcher` for why a permission row
+    /// needs a watcher rather than a read, and why reading it more often makes it worse.
+    @StateObject private var accessibility = JorvikPermissionWatcher.accessibility()
+
     var body: some View {
         Section(L10n.string("settings.quit_mode", defaultValue: "Quit Mode")) {
             Picker(L10n.string("settings.mode", defaultValue: "Mode"), selection: Binding(
@@ -63,7 +67,7 @@ struct QuitProtectSettingsContent: View {
             HStack {
                 Text(L10n.string("settings.accessibility", defaultValue: "Accessibility"))
                 Spacer()
-                if AXIsProcessTrusted() {
+                if accessibility.isGranted {
                     Label(
                         L10n.string("settings.permission_granted", defaultValue: "Granted"),
                         systemImage: "checkmark.circle.fill"
@@ -72,8 +76,7 @@ struct QuitProtectSettingsContent: View {
                         .font(.caption)
                 } else {
                     Button(L10n.string("settings.grant_access", defaultValue: "Grant Access")) {
-                        let opts = [kAXTrustedCheckOptionPrompt.takeRetainedValue(): true] as CFDictionary
-                        AXIsProcessTrustedWithOptions(opts)
+                        JorvikPermissionWatcher.promptForAccessibility()
                     }
                     .font(.caption)
                 }
