@@ -112,15 +112,15 @@ private func handleDoublePress(type: CGEventType, event: CGEvent) -> Unmanaged<C
         return Unmanaged.passRetained(event)
     }
 
-    // Ignore key repeats (auto-repeat while holding)
+    // Repeat-ness is a key-transition fact like any other, so the machine
+    // consumes auto-repeats itself — every gesture decision in one place.
     let isRepeat = event.getIntegerValueField(.keyboardEventAutorepeat) != 0
-    if isRepeat { return nil }
-
     let now = CFAbsoluteTimeGetCurrent()
 
     let action = _gestureState.doublePressKeyDown(
-        now: now, interval: _doublePressInterval, isRepeat: false
+        now: now, interval: _doublePressInterval, isRepeat: isRepeat
     )
+    if action == .consume { return nil }
     if action == .passThrough {
         // Second press within window — allow the quit through
         notifyQuitGuidance(.resolved)

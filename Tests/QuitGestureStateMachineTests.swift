@@ -22,6 +22,13 @@ final class QuitGestureStateMachineTests: XCTestCase {
         XCTAssertFalse(machine.holding)
     }
 
+    func testDoublePressRepeatsAreConsumedWithoutStartingGesture() {
+        var machine = QuitGestureStateMachine()
+
+        XCTAssertEqual(machine.doublePressKeyDown(now: 0, interval: 0.4, isRepeat: true), .consume)
+        XCTAssertFalse(machine.waitingForSecondPress)
+    }
+
     func testDoublePressPassesOnlyTheSecondPress() {
         var machine = QuitGestureStateMachine()
 
