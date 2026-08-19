@@ -114,6 +114,18 @@ final class QuitGestureStateMachineTests: XCTestCase {
         XCTAssertEqual(machine.blockedCount, 0)
     }
 
+    func testHoldCanStartAgainAfterCommandReleaseFollowingThreshold() {
+        var machine = QuitGestureStateMachine()
+
+        _ = machine.holdKeyDown()
+        XCTAssertEqual(machine.holdDurationReached(), .quit)
+        XCTAssertEqual(machine.holdReleased(), .resolved)
+
+        XCTAssertEqual(machine.holdKeyDown(), .began)
+        XCTAssertEqual(machine.holdDurationReached(), .quit)
+        XCTAssertEqual(machine.blockedCount, 0)
+    }
+
     func testChangingModeCancelsPendingGesture() {
         var machine = QuitGestureStateMachine()
 
