@@ -45,6 +45,8 @@
 "about.source_code" = "源代码";
 "about.product_page" = "产品页面";
 "about.close" = "关闭";
+"about.contributors" = "感谢以下贡献者";
+"credits.cai" = "退出操作提示浮层；英文和简体中文本地化";
 
 "shortcut.press" = "请按下快捷键…";
 "shortcut.cancel" = "取消";

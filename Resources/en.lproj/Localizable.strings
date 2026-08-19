@@ -45,6 +45,8 @@
 "about.source_code" = "Source Code";
 "about.product_page" = "Product Page";
 "about.close" = "Close";
+"about.contributors" = "With contributions from";
+"credits.cai" = "quit-guidance overlay; English and Simplified Chinese localisation";
 
 "shortcut.press" = "Press shortcut…";
 "shortcut.cancel" = "Cancel";

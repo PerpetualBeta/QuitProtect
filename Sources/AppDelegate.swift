@@ -252,7 +252,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         JorvikAboutView.showWindow(
             appName: "QuitProtect",
             repoName: "QuitProtect",
-            productPage: "utilities/quitprotect"
+            productPage: "utilities/quitprotect",
+            credits: [
+                JorvikCredit(
+                    name: "阿菜 Cai",
+                    contribution: L10n.string(
+                        "credits.cai",
+                        defaultValue: "quit-guidance overlay; English and Simplified Chinese localisation"
+                    ),
+                    url: URL(string: "https://github.com/RSS1102")
+                )
+            ]
         )
     }
 
