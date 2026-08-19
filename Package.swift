@@ -8,6 +8,7 @@ let package = Package(
         .target(name: "QuitProtectCore", path: "Sources/Core"),
         .executableTarget(
             name: "QuitProtect",
+            dependencies: ["QuitProtectCore"],
             path: "Sources",
             exclude: ["Core"],
             linkerSettings: [
