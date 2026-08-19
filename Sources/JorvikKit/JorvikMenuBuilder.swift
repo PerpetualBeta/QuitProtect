@@ -1,4 +1,5 @@
 import AppKit
+import QuitProtectCore
 
 enum JorvikMenuBuilder {
 
@@ -80,7 +81,7 @@ enum JorvikMenuBuilder {
         let settingsItem = NSMenuItem(
             title: L10n.string("menu.settings", defaultValue: "Settings\u{2026}"),
             action: settingsAction,
-            keyEquivalent: ","
+            keyEquivalent: QuitProtectMenuContract.settingsKeyEquivalent
         )
         settingsItem.target = target
         menu.addItem(settingsItem)
@@ -88,9 +89,9 @@ enum JorvikMenuBuilder {
         // Quit
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(
-            title: L10n.format("menu.quit_format", defaultValue: "Quit %@", appName),
+            title: QuitProtectMenuContract.quitTitle(appName: appName),
             action: #selector(NSApp.terminate(_:)),
-            keyEquivalent: "q"
+            keyEquivalent: QuitProtectMenuContract.quitKeyEquivalent
         ))
 
         return menu

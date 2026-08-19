@@ -1,5 +1,6 @@
 import SwiftUI
 import ServiceManagement
+import QuitProtectCore
 
 struct JorvikSettingsView<AppSettings: View>: View {
     let appName: String
@@ -292,11 +293,17 @@ private enum JorvikSettingsMetrics {
         let visible = screen?.visibleFrame.size ?? assumedScreenSize
         // `max(..., floor)` on each ceiling so a display too small for the floor yields the
         // floor rather than an inverted range.
-        let ceilingWidth = max(visible.width * maxDisplayFraction, minContentSize.width)
-        let ceilingHeight = max(visible.height * maxDisplayFraction - chromeHeight,
-                                minContentSize.height)
-        return NSSize(width: min(max(fitting.width, minContentSize.width), ceilingWidth),
-                      height: min(max(fitting.height, minContentSize.height), ceilingHeight))
+        let result = SettingsWindowSizing.contentSize(
+            fittingWidth: fitting.width,
+            fittingHeight: fitting.height,
+            visibleWidth: visible.width,
+            visibleHeight: visible.height,
+            minimumWidth: minContentSize.width,
+            minimumHeight: minContentSize.height,
+            displayFraction: maxDisplayFraction,
+            chromeHeight: chromeHeight
+        )
+        return NSSize(width: result.width, height: result.height)
     }
 
     /// When to re-assert the form's scroll position after the window is shown.

@@ -1,6 +1,7 @@
 import AppKit
 import ApplicationServices
 import SwiftUI
+import QuitProtectCore
 
 /// Keeps a TCC permission's state current in a Settings window, so granting it in
 /// System Settings is reflected without the window being closed and reopened.
@@ -90,6 +91,7 @@ public final class JorvikPermissionWatcher: NSObject, ObservableObject {
     private let announcement: Notification.Name?
     private var poll: Timer?
     private var quietUntil: Date = .distantPast
+    private var refreshPolicy: PermissionRefreshPolicy
 
     /// - Parameters:
     ///   - announcement: a distributed notification that signals this permission may have
@@ -99,7 +101,9 @@ public final class JorvikPermissionWatcher: NSObject, ObservableObject {
     public init(announcement: Notification.Name? = nil, check: @escaping () -> Bool) {
         self.check = check
         self.announcement = announcement
-        self.isGranted = check()
+        let initialValue = check()
+        self.isGranted = initialValue
+        self.refreshPolicy = PermissionRefreshPolicy(isGranted: initialValue)
         super.init()
 
         if let announcement {
@@ -130,14 +134,16 @@ public final class JorvikPermissionWatcher: NSObject, ObservableObject {
 
     /// Re-read now, unless a change is still settling.
     public func reread() {
-        if Date() < quietUntil { return }
         let now = check()
-        if now != isGranted { isGranted = now }
+        let timestamp = Date().timeIntervalSinceReferenceDate
+        if refreshPolicy.reread(at: timestamp, value: now) { isGranted = now }
     }
 
     @objc private func announced() {
         // Deliberately no read here: the announcement means the cached answer is about to
         // become wrong, not that the new one is available yet.
+        let timestamp = Date().timeIntervalSinceReferenceDate
+        refreshPolicy.announceChange(at: timestamp, settleFor: Self.commitSeconds)
         quietUntil = Date().addingTimeInterval(Self.commitSeconds)
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.commitSeconds) { [weak self] in
             guard let self else { return }

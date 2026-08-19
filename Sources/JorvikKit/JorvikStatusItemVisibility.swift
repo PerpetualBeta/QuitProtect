@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import QuitProtectCore
 
 /// Lets a menu-bar app hide its status-bar item and get it back by
 /// relaunching from /Applications — the standard "I closed the icon, how
@@ -55,17 +56,16 @@ public enum JorvikStatusItemVisibility {
         defaultsPrefix + (Bundle.main.bundleIdentifier ?? "unknown")
     }
 
+    private static let store = StatusItemVisibilityStore(defaults: .standard, key: key)
+
     /// Whether the app's status-bar item should currently be shown.
     /// Persisted per-bundle; defaults to `true` (visible) for fresh installs.
-    public static var isVisible: Bool {
-        !UserDefaults.standard.bool(forKey: key)
-    }
+    public static var isVisible: Bool { store.isVisible }
 
     /// Persist a new visibility state and broadcast the change. Call from
     /// the settings toggle.
     public static func setVisible(_ visible: Bool) {
-        guard visible != isVisible else { return }
-        UserDefaults.standard.set(!visible, forKey: key)
+        guard store.setVisible(visible) else { return }
         NotificationCenter.default.post(name: didChangeNotification, object: nil)
     }
 

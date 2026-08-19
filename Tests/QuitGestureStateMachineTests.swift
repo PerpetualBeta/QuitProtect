@@ -17,6 +17,60 @@ final class QuitGestureStateMachineTests: XCTestCase {
         XCTAssertFalse(QuitProtectSettingsPolicy.validDoublePressInterval(1.0))
     }
 
+    func testVisibilityStorePersistsOnlyRealChanges() {
+        let suite = UserDefaults(suiteName: "QuitProtectTests.visibility")!
+        suite.removePersistentDomain(forName: "QuitProtectTests.visibility")
+        let store = StatusItemVisibilityStore(defaults: suite, key: "hidden")
+
+        XCTAssertTrue(store.isVisible)
+        XCTAssertFalse(store.setVisible(true))
+        XCTAssertTrue(store.setVisible(false))
+        XCTAssertFalse(store.isVisible)
+        XCTAssertFalse(store.setVisible(false))
+        XCTAssertTrue(store.setVisible(true))
+        XCTAssertTrue(store.isVisible)
+    }
+
+    func testMenuContractProtectsSettingsAndQuitShortcuts() {
+        XCTAssertEqual(QuitProtectMenuContract.settingsKeyEquivalent, ",")
+        XCTAssertEqual(QuitProtectMenuContract.quitKeyEquivalent, "q")
+        XCTAssertEqual(QuitProtectMenuContract.quitTitle(appName: "QuitProtect"), "Quit QuitProtect")
+    }
+
+    func testPermissionPolicyDoesNotReadDuringTCCSettlement() {
+        var policy = PermissionRefreshPolicy(isGranted: false)
+        policy.announceChange(at: 10, settleFor: 1.5)
+
+        XCTAssertFalse(policy.reread(at: 10.5, value: true))
+        XCTAssertFalse(policy.isGranted)
+        XCTAssertTrue(policy.reread(at: 11.5, value: true))
+        XCTAssertTrue(policy.isGranted)
+        XCTAssertFalse(policy.reread(at: 12, value: true))
+    }
+
+    func testSettingsWindowSizingHasFloorAndDisplayCeiling() {
+        let result = SettingsWindowSizing.contentSize(
+            fittingWidth: 900,
+            fittingHeight: 1600,
+            visibleWidth: 1440,
+            visibleHeight: 900,
+            chromeHeight: 24
+        )
+
+        XCTAssertEqual(result.width, 900)
+        XCTAssertEqual(result.height, 696)
+        XCTAssertEqual(
+            SettingsWindowSizing.contentSize(
+                fittingWidth: 100,
+                fittingHeight: 100,
+                visibleWidth: 500,
+                visibleHeight: 500,
+                chromeHeight: 24
+            ).width,
+            420
+        )
+    }
+
     func testDoublePressConsumesFirstAndPassesSecond() {
         var machine = QuitGestureStateMachine()
 
