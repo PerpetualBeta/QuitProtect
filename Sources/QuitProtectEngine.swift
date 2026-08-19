@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import QuitProtectCore
 
 // MARK: - Quit mode
 
@@ -29,16 +30,8 @@ private var _holdDuration: Double = 1.0
 private var _doublePressInterval: Double = 0.4
 
 // Double-press state
-private var _lastQKeyDownTime: CFAbsoluteTime = 0
-private var _waitingForSecondPress = false
-
-// Hold state
-private var _qKeyDownStart: CFAbsoluteTime = 0
-private var _qKeyIsHeld = false
-private var _holdConfirmed = false
-
 // Stats
-private var _blockedCount: Int = 0
+private var _gestureState = QuitGestureStateMachine()
 
 // Tap reference for re-enable
 private var _quitProtectTap: CFMachPort?
@@ -81,24 +74,18 @@ private func quitProtectCallback(
 
     // If Q key released while we're in an active hold/wait state, reset even if
     // ⌘ was released first (keyUp won't have .maskCommand in that case)
-    if isQKey && type == .keyUp && (_qKeyIsHeld || _waitingForSecondPress) {
-        if _qKeyIsHeld && !_holdConfirmed {
-            _blockedCount += 1
-        }
-        if _qKeyIsHeld {
+    if isQKey && type == .keyUp && (_gestureState.holding || _gestureState.waitingForSecondPress) {
+        if _gestureState.holding {
+            _ = _gestureState.holdReleased()
             notifyQuitGuidance(.resolved)
         }
-        _qKeyIsHeld = false
-        _holdConfirmed = false
         return nil
     }
 
     guard isQKey && isCmdOnly else {
         // If ⌘ was released while holding Q, reset hold state
-        if _qKeyIsHeld && type == .flagsChanged {
-            if !_holdConfirmed { _blockedCount += 1 }
-            _qKeyIsHeld = false
-            _holdConfirmed = false
+        if _gestureState.holding && type == .flagsChanged {
+            _ = _gestureState.holdReleased()
             notifyQuitGuidance(.resolved)
         }
         return Unmanaged.passRetained(event)
@@ -127,33 +114,29 @@ private func handleDoublePress(type: CGEventType, event: CGEvent) -> Unmanaged<C
 
     // Ignore key repeats (auto-repeat while holding)
     let isRepeat = event.getIntegerValueField(.keyboardEventAutorepeat) != 0
-    if isRepeat {
-        return nil // consume repeats
-    }
+    if isRepeat { return nil }
 
     let now = CFAbsoluteTimeGetCurrent()
 
-    if _waitingForSecondPress && (now - _lastQKeyDownTime) < _doublePressInterval {
+    let action = _gestureState.doublePressKeyDown(
+        now: now, interval: _doublePressInterval, isRepeat: false
+    )
+    if action == .passThrough {
         // Second press within window — allow the quit through
-        _waitingForSecondPress = false
-        _lastQKeyDownTime = 0
         notifyQuitGuidance(.resolved)
         return Unmanaged.passRetained(event)
     }
 
     // First press — block and start waiting
-    _waitingForSecondPress = true
-    _lastQKeyDownTime = now
     notifyQuitGuidance(.began(.doublePress))
 
     // Count as blocked only if the user doesn't follow through
     let interval = _doublePressInterval
     DispatchQueue.main.asyncAfter(deadline: .now() + interval) {
-        if _waitingForSecondPress && (CFAbsoluteTimeGetCurrent() - _lastQKeyDownTime) >= interval {
-            _waitingForSecondPress = false
-            _blockedCount += 1
-            notifyQuitGuidance(.resolved)
-        }
+        let action = _gestureState.doublePressExpired(
+            now: CFAbsoluteTimeGetCurrent(), interval: interval
+        )
+        if action == .blocked { notifyQuitGuidance(.resolved) }
     }
 
     return nil // consume first press
@@ -165,17 +148,16 @@ private func handleHold(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>
     if type == .keyDown {
         let isRepeat = event.getIntegerValueField(.keyboardEventAutorepeat) != 0
 
-        if !_qKeyIsHeld {
+        if !_gestureState.holding {
             // Initial key down — start the hold timer
-            _qKeyIsHeld = true
-            _qKeyDownStart = CFAbsoluteTimeGetCurrent()
-            _holdConfirmed = false
+            _ = _gestureState.holdKeyDown(now: CFAbsoluteTimeGetCurrent())
             notifyQuitGuidance(.began(.holdToQuit))
-        } else if isRepeat && !_holdConfirmed {
+        } else if isRepeat && !_gestureState.holdConfirmed {
             // Check if held long enough
-            let elapsed = CFAbsoluteTimeGetCurrent() - _qKeyDownStart
-            if elapsed >= _holdDuration {
-                _holdConfirmed = true
+            let action = _gestureState.holdDurationReached(
+                now: CFAbsoluteTimeGetCurrent(), duration: _holdDuration
+            )
+            if action == .quit {
                 notifyQuitGuidance(.resolved)
                 // Synthesise ⌘Q to actually quit the app
                 if let qDown = CGEvent(keyboardEventSource: nil, virtualKey: 12, keyDown: true),
@@ -192,8 +174,7 @@ private func handleHold(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>
 
     if type == .keyUp {
         // State reset and blocked count handled by the early Q-keyUp guard above
-        _qKeyIsHeld = false
-        _holdConfirmed = false
+        _ = _gestureState.holdReleased()
         return nil // consume the key-up too
     }
 
@@ -207,7 +188,7 @@ private func handleHold(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>
 final class QuitProtectEngine {
     /// We *believe* protection is up: permission was granted and the tap was created.
     var isActive: Bool = false
-    var blockedCount: Int { _blockedCount }
+    var blockedCount: Int { _gestureState.blockedCount }
 
     /// Is protection ACTUALLY in force, this instant?
     ///
@@ -281,9 +262,7 @@ final class QuitProtectEngine {
         _quitMode = mode
         _holdDuration = holdDuration
         _doublePressInterval = doublePressInterval
-        _waitingForSecondPress = false
-        _qKeyIsHeld = false
-        _holdConfirmed = false
+        _gestureState.reset()
 
         let options = [kAXTrustedCheckOptionPrompt.takeRetainedValue(): true] as CFDictionary
 
@@ -334,17 +313,13 @@ final class QuitProtectEngine {
         }
         eventTap = nil
         _quitProtectTap = nil
-        _waitingForSecondPress = false
-        _qKeyIsHeld = false
-        _holdConfirmed = false
+        _gestureState.reset()
     }
 
     func updateMode(_ mode: QuitMode) {
         notifyQuitGuidance(.resolved)
         _quitMode = mode
-        _waitingForSecondPress = false
-        _qKeyIsHeld = false
-        _holdConfirmed = false
+        _gestureState.reset()
     }
 
     func updateHoldDuration(_ duration: Double) {
