@@ -3,6 +3,20 @@ import XCTest
 
 final class QuitGestureStateMachineTests: XCTestCase {
 
+    func testSettingsPolicyMatchesSettingsChoices() {
+        XCTAssertEqual(QuitProtectSettingsPolicy.defaultHoldDuration, 1.0)
+        XCTAssertEqual(QuitProtectSettingsPolicy.defaultDoublePressInterval, 0.4)
+        XCTAssertEqual(QuitProtectSettingsPolicy.holdDurations, [0.5, 1.0, 1.5, 2.0])
+        XCTAssertEqual(QuitProtectSettingsPolicy.doublePressIntervals, [0.3, 0.4, 0.5, 0.75])
+    }
+
+    func testSettingsPolicyRejectsValuesNotPresentedByTheSettingsUI() {
+        XCTAssertTrue(QuitProtectSettingsPolicy.validHoldDuration(1.5))
+        XCTAssertFalse(QuitProtectSettingsPolicy.validHoldDuration(3.0))
+        XCTAssertTrue(QuitProtectSettingsPolicy.validDoublePressInterval(0.75))
+        XCTAssertFalse(QuitProtectSettingsPolicy.validDoublePressInterval(1.0))
+    }
+
     func testDoublePressConsumesFirstAndPassesSecond() {
         var machine = QuitGestureStateMachine()
 
