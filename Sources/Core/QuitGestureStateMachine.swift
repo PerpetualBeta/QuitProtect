@@ -75,3 +75,41 @@ public struct QuitGestureStateMachine {
         return action
     }
 }
+
+/// Serializes access to the gesture state shared by the CGEvent callback and
+/// main-queue timeout callbacks. The state machine remains pure and directly
+/// testable; this is the production concurrency boundary.
+public final class QuitGestureStateStore {
+    private let lock = NSLock()
+    private var machine = QuitGestureStateMachine()
+
+    public init() {}
+
+    public var waitingForSecondPress: Bool { withLock { machine.waitingForSecondPress } }
+    public var holding: Bool { withLock { machine.holding } }
+    public var holdConfirmed: Bool { withLock { machine.holdConfirmed } }
+    public var blockedCount: Int { withLock { machine.blockedCount } }
+
+    public func reset() { withLock { machine.reset() } }
+    public func doublePressKeyDown(now: TimeInterval, interval: TimeInterval, isRepeat: Bool) -> QuitGestureAction {
+        withLock { machine.doublePressKeyDown(now: now, interval: interval, isRepeat: isRepeat) }
+    }
+    public func doublePressExpired(now: TimeInterval, interval: TimeInterval) -> QuitGestureAction {
+        withLock { machine.doublePressExpired(now: now, interval: interval) }
+    }
+    public func holdKeyDown(now: TimeInterval) -> QuitGestureAction {
+        withLock { machine.holdKeyDown(now: now) }
+    }
+    public func holdDurationReached(now: TimeInterval, duration: TimeInterval) -> QuitGestureAction {
+        withLock { machine.holdDurationReached(now: now, duration: duration) }
+    }
+    public func holdReleased() -> QuitGestureAction {
+        withLock { machine.holdReleased() }
+    }
+
+    private func withLock<T>(_ body: () -> T) -> T {
+        lock.lock()
+        defer { lock.unlock() }
+        return body()
+    }
+}

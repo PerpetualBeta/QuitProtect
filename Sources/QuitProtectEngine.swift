@@ -31,7 +31,7 @@ private var _doublePressInterval: Double = 0.4
 
 // Double-press state
 // Stats
-private var _gestureState = QuitGestureStateMachine()
+private let _gestureState = QuitGestureStateStore()
 
 // Tap reference for re-enable
 private var _quitProtectTap: CFMachPort?

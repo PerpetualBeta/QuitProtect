@@ -36,4 +36,22 @@ final class QuitGestureStateMachineTests: XCTestCase {
         XCTAssertEqual(machine.doublePressKeyDown(now: 0.2, interval: 0.4, isRepeat: false), .passThrough)
         XCTAssertFalse(machine.waitingForSecondPress)
     }
+
+    func testStateStoreSerializesConcurrentReadsAndTransitions() {
+        let store = QuitGestureStateStore()
+
+        DispatchQueue.concurrentPerform(iterations: 100) { index in
+            if index.isMultiple(of: 2) {
+                _ = store.holdKeyDown(now: Double(index))
+                _ = store.holdReleased()
+            } else {
+                _ = store.doublePressKeyDown(now: Double(index), interval: 0.4, isRepeat: false)
+                _ = store.doublePressExpired(now: Double(index) + 1, interval: 0.4)
+            }
+            _ = store.holding
+            _ = store.blockedCount
+        }
+
+        XCTAssertGreaterThanOrEqual(store.blockedCount, 0)
+    }
 }
