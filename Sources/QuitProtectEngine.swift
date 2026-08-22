@@ -33,11 +33,12 @@ private var _doublePressInterval: Double = 0.4
 // Stats
 private var _gestureState = QuitGestureStateMachine()
 
-// Tap reference for re-enable
-private var _quitProtectTap: CFMachPort?
-
 // Callback to keep optional UI guidance aligned with the active quit gesture
 private var _onQuitGuidanceEvent: ((QuitGuidanceEvent) -> Void)?
+
+// The C callback requests recovery; the engine changes tap/source ownership on the main run loop
+// after the callback returns.
+private var _requestEventTapRecovery: (() -> Void)?
 
 private func notifyQuitGuidance(_ event: QuitGuidanceEvent) {
     DispatchQueue.main.async {
@@ -56,10 +57,8 @@ private func quitProtectCallback(
     // Auto-re-enable if macOS disabled the tap
     if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
         notifyQuitGuidance(.resolved)
-        if let tap = _quitProtectTap {
-            CGEvent.tapEnable(tap: tap, enable: true)
-        }
-        return Unmanaged.passRetained(event)
+        _requestEventTapRecovery?()
+        return Unmanaged.passUnretained(event)
     }
 
     let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
@@ -88,13 +87,13 @@ private func quitProtectCallback(
             _ = _gestureState.holdReleased()
             notifyQuitGuidance(.resolved)
         }
-        return Unmanaged.passRetained(event)
+        return Unmanaged.passUnretained(event)
     }
 
     // Don't protect QuitProtect itself
     if let frontApp = NSWorkspace.shared.frontmostApplication,
        frontApp.bundleIdentifier == "cc.jorviksoftware.QuitProtect" {
-        return Unmanaged.passRetained(event)
+        return Unmanaged.passUnretained(event)
     }
 
     switch _quitMode {
@@ -109,7 +108,7 @@ private func quitProtectCallback(
 
 private func handleDoublePress(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
     guard type == .keyDown else {
-        return Unmanaged.passRetained(event)
+        return Unmanaged.passUnretained(event)
     }
 
     // Repeat-ness is a key-transition fact like any other, so the machine
@@ -124,7 +123,7 @@ private func handleDoublePress(type: CGEventType, event: CGEvent) -> Unmanaged<C
     if action == .passThrough {
         // Second press within window — allow the quit through
         notifyQuitGuidance(.resolved)
-        return Unmanaged.passRetained(event)
+        return Unmanaged.passUnretained(event)
     }
 
     // First press — block and start waiting
@@ -178,7 +177,7 @@ private func handleHold(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>
         return nil // consume the key-up too
     }
 
-    return Unmanaged.passRetained(event)
+    return Unmanaged.passUnretained(event)
 }
 
 // MARK: - QuitProtectEngine
@@ -186,6 +185,11 @@ private func handleHold(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>
 @MainActor
 @Observable
 final class QuitProtectEngine {
+    private struct EventTapResources {
+        let tap: CFMachPort
+        let source: CFRunLoopSource
+    }
+
     /// We *believe* protection is up: permission was granted and the tap was created.
     var isActive: Bool = false
     var blockedCount: Int { _gestureState.blockedCount }
@@ -200,8 +204,7 @@ final class QuitProtectEngine {
     ///
     /// Probed rather than remembered, so it stays honest even if the notification below never arrives.
     var isProtecting: Bool {
-        guard isActive, let tap = eventTap, CFMachPortIsValid(tap) else { return false }
-        return CGEvent.tapIsEnabled(tap: tap)
+        isActive && eventTapLifecycle.isProtecting
     }
 
     /// Fired when protection comes up or goes down without the user asking — permission granted while
@@ -214,15 +217,26 @@ final class QuitProtectEngine {
     /// ticking the box in System Settings.
     private static let permissionPollInterval: TimeInterval = 2.0
 
-    private var eventTap: CFMachPort?
     private var permissionTimer: Timer?
     @ObservationIgnored private var trustObserver: NSObjectProtocol?
+    @ObservationIgnored private lazy var eventTapLifecycle = EventTapLifecycleController<EventTapResources>(
+        create: { [weak self] in self?.createEventTapResources() },
+        isValid: { CFMachPortIsValid($0.tap) && CFRunLoopSourceIsValid($0.source) },
+        isEnabled: { CGEvent.tapIsEnabled(tap: $0.tap) },
+        enable: { CGEvent.tapEnable(tap: $0.tap, enable: true) },
+        destroy: { [weak self] in self?.destroyEventTapResources($0) }
+    )
 
     // MARK: - Lifecycle
 
     /// Registered for the life of the process — the engine is owned by the app delegate and outlives
     /// every other object here, so there is no teardown to pair this with.
     init() {
+        _requestEventTapRecovery = { [weak self] in
+            DispatchQueue.main.async { [weak self] in
+                self?.recoverEventTapAfterDisable()
+            }
+        }
         trustObserver = DistributedNotificationCenter.default().addObserver(
             forName: NSNotification.Name("com.apple.accessibility.api"),
             object: nil, queue: .main
@@ -266,7 +280,7 @@ final class QuitProtectEngine {
 
         let options = [kAXTrustedCheckOptionPrompt.takeRetainedValue(): true] as CFDictionary
 
-        if AXIsProcessTrustedWithOptions(options), tryCreateEventTap() {
+        if AXIsProcessTrustedWithOptions(options), eventTapLifecycle.start() {
             isActive = true
         } else {
             // Either permission is missing, or it is granted and the tap would not create anyway.
@@ -288,7 +302,7 @@ final class QuitProtectEngine {
         ) { [weak self] _ in
             Task { @MainActor in
                 guard let self else { return }
-                guard AXIsProcessTrusted(), self.tryCreateEventTap() else { return }
+                guard AXIsProcessTrusted(), self.eventTapLifecycle.start() else { return }
 
                 // Retire the timer only once the tap genuinely exists. Retiring it on trust alone left
                 // no retry if creation then failed — and because creation was deferred onto the main
@@ -306,13 +320,7 @@ final class QuitProtectEngine {
         isActive = false
         permissionTimer?.invalidate()
         permissionTimer = nil
-        // Validity-checked because the revocation path arrives here with a port macOS has already
-        // invalidated underneath us — this is not only reached by a deliberate switch-off.
-        if let tap = eventTap, CFMachPortIsValid(tap) {
-            CGEvent.tapEnable(tap: tap, enable: false)
-        }
-        eventTap = nil
-        _quitProtectTap = nil
+        eventTapLifecycle.stop()
         _gestureState.reset()
     }
 
@@ -332,9 +340,7 @@ final class QuitProtectEngine {
 
     // MARK: - CGEvent tap
 
-    private func tryCreateEventTap() -> Bool {
-        if eventTap != nil { return true }
-
+    private func createEventTapResources() -> EventTapResources? {
         let mask: CGEventMask = (1 << CGEventType.keyDown.rawValue)
                               | (1 << CGEventType.keyUp.rawValue)
                               | (1 << CGEventType.flagsChanged.rawValue)
@@ -346,15 +352,34 @@ final class QuitProtectEngine {
             eventsOfInterest: mask,
             callback: quitProtectCallback,
             userInfo: nil
-        ) else {
-            return false
-        }
+        ) else { return nil }
 
-        eventTap = tap
-        _quitProtectTap = tap
-        let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
+        guard let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0) else {
+            CFMachPortInvalidate(tap)
+            return nil
+        }
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
-        CGEvent.tapEnable(tap: tap, enable: true)
-        return true
+        return EventTapResources(tap: tap, source: source)
+    }
+
+    private func destroyEventTapResources(_ resources: EventTapResources) {
+        if CFMachPortIsValid(resources.tap) {
+            CGEvent.tapEnable(tap: resources.tap, enable: false)
+        }
+        CFRunLoopRemoveSource(CFRunLoopGetMain(), resources.source, .commonModes)
+        CFRunLoopSourceInvalidate(resources.source)
+        if CFMachPortIsValid(resources.tap) {
+            CFMachPortInvalidate(resources.tap)
+        }
+    }
+
+    private func recoverEventTapAfterDisable() {
+        guard isActive else { return }
+
+        if eventTapLifecycle.recoverAfterDisable() { return }
+
+        isActive = false
+        beginPollingForPermission()
+        onProtectionChanged?()
     }
 }
