@@ -321,6 +321,7 @@ final class QuitProtectEngine {
     }
 
     func updateDoublePressInterval(_ interval: Double) {
+        notifyQuitGuidance(.resolved)
         _gestureCoordinator.update(doublePressInterval: interval)
     }
 
