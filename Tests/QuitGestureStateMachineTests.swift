@@ -108,20 +108,48 @@ final class QuitGestureStateMachineTests: XCTestCase {
         XCTAssertEqual(coordinator.blockedCount, 1)
     }
 
+    func testCoordinatorInvalidatesPendingTimeoutWhenDoublePressIntervalChanges() {
+        let coordinator = QuitGestureCoordinator(doublePressInterval: 0.4)
+
+        let first = coordinator.handle(.keyDown(now: 0, isRepeat: false))
+        XCTAssertEqual(first.timeoutToken, 1)
+
+        coordinator.update(doublePressInterval: 0.75)
+
+        XCTAssertEqual(
+            coordinator.handle(.timeout(token: 1, now: 0.4)),
+            QuitGestureResult(disposition: .consume)
+        )
+        let next = coordinator.handle(.keyDown(now: 0.5, isRepeat: false))
+        XCTAssertEqual(next.timeoutToken, 2)
+        XCTAssertEqual(next.timeoutAfter, 0.75)
+        XCTAssertEqual(
+            coordinator.handle(.timeout(token: 2, now: 1.25)),
+            QuitGestureResult(disposition: .consume, guidance: .resolved)
+        )
+        XCTAssertEqual(coordinator.blockedCount, 1)
+    }
+
     func testCoordinatorSerializesConcurrentEvents() {
         let coordinator = QuitGestureCoordinator(mode: .holdToQuit, holdDuration: 1)
+        let resultLock = NSLock()
+        var results: [QuitGestureResult] = []
 
         DispatchQueue.concurrentPerform(iterations: 100) { index in
-            if index.isMultiple(of: 2) {
-                _ = coordinator.handle(.keyDown(now: Double(index), isRepeat: false))
-                _ = coordinator.handle(.keyUp)
-            } else {
-                _ = coordinator.handle(.keyDown(now: Double(index), isRepeat: true))
-                _ = coordinator.handle(.commandReleased)
-            }
-            _ = coordinator.blockedCount
+            let result = coordinator.handle(.keyDown(now: Double(index), isRepeat: false))
+            resultLock.lock()
+            results.append(result)
+            resultLock.unlock()
         }
 
-        XCTAssertGreaterThanOrEqual(coordinator.blockedCount, 0)
+        XCTAssertEqual(results.count, 100)
+        XCTAssertEqual(results.filter { $0.guidance == .began }.count, 1)
+        XCTAssertTrue(results.allSatisfy { $0.disposition == .consume })
+        XCTAssertTrue(results.allSatisfy { !$0.shouldQuit })
+        XCTAssertEqual(
+            coordinator.handle(.keyUp),
+            QuitGestureResult(mode: .holdToQuit, disposition: .consume, guidance: .resolved)
+        )
+        XCTAssertEqual(coordinator.blockedCount, 1)
     }
 }

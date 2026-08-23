@@ -113,7 +113,11 @@ public final class QuitGestureCoordinator {
     }
 
     public func update(doublePressInterval: TimeInterval) {
-        queue.sync { self.configuredDoublePressInterval = doublePressInterval }
+        queue.sync {
+            self.configuredDoublePressInterval = doublePressInterval
+            activeTimeoutToken = nil
+            machine.reset()
+        }
     }
 
     public func reset() {
