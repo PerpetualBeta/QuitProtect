@@ -209,6 +209,23 @@ final class QuitGestureStateMachineTests: XCTestCase {
         )
     }
 
+    func testGestureTimingDoesNotPersistDefaultsForMissingKeys() {
+        let suiteName = "QuitGestureTimingTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        XCTAssertEqual(
+            QuitGestureTiming.loadHoldDuration(from: defaults, key: "hold"),
+            QuitGestureTiming.defaultHoldDuration
+        )
+        XCTAssertEqual(
+            QuitGestureTiming.loadDoublePressInterval(from: defaults, key: "doublePress"),
+            QuitGestureTiming.defaultDoublePressInterval
+        )
+        XCTAssertNil(defaults.object(forKey: "hold"))
+        XCTAssertNil(defaults.object(forKey: "doublePress"))
+    }
+
     func testCoordinatorNormalizesInvalidTimingUpdates() {
         let holdCoordinator = QuitGestureCoordinator(mode: .holdToQuit)
         holdCoordinator.update(holdDuration: -1)

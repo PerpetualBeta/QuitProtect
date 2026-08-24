@@ -74,7 +74,7 @@ public enum QuitGestureTiming {
     ) -> TimeInterval {
         let stored = defaults.object(forKey: key) as? TimeInterval
         let normalized = normalize(stored ?? defaultValue)
-        if stored != normalized { defaults.set(normalized, forKey: key) }
+        if let stored, stored != normalized { defaults.set(normalized, forKey: key) }
         return normalized
     }
 }

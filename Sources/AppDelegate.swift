@@ -38,8 +38,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         QuitGestureTiming.loadHoldDuration(from: .standard, key: "holdDuration")
     }() {
         didSet {
-            UserDefaults.standard.set(holdDuration, forKey: "holdDuration")
-            engine.updateHoldDuration(holdDuration)
+            let normalized = QuitGestureTiming.normalizedHoldDuration(holdDuration)
+            if holdDuration != normalized { holdDuration = normalized }
+            UserDefaults.standard.set(normalized, forKey: "holdDuration")
+            engine.updateHoldDuration(normalized)
         }
     }
 
@@ -47,8 +49,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         QuitGestureTiming.loadDoublePressInterval(from: .standard, key: "doublePressInterval")
     }() {
         didSet {
-            UserDefaults.standard.set(doublePressInterval, forKey: "doublePressInterval")
-            engine.updateDoublePressInterval(doublePressInterval)
+            let normalized = QuitGestureTiming.normalizedDoublePressInterval(doublePressInterval)
+            if doublePressInterval != normalized { doublePressInterval = normalized }
+            UserDefaults.standard.set(normalized, forKey: "doublePressInterval")
+            engine.updateDoublePressInterval(normalized)
         }
     }
 
