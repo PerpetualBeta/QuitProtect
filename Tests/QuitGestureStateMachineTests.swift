@@ -171,6 +171,21 @@ final class QuitGestureStateMachineTests: XCTestCase {
         }
     }
 
+    func testGestureTimingOptionsAreValidSingleSourcesOfTruth() {
+        for (options, defaultValue) in [
+            (QuitGestureTiming.holdOptions, QuitGestureTiming.defaultHoldDuration),
+            (QuitGestureTiming.doublePressOptions, QuitGestureTiming.defaultDoublePressInterval),
+        ] {
+            let values = options.map(\.value)
+            XCTAssertEqual(Set(values).count, values.count)
+            XCTAssertTrue(values.allSatisfy { $0.isFinite && $0 > 0 })
+            XCTAssertTrue(values.contains(defaultValue))
+            XCTAssertTrue(options.allSatisfy {
+                !$0.localizationKey.isEmpty && !$0.defaultLabel.isEmpty
+            })
+        }
+    }
+
     func testGestureTimingRepairsInvalidPersistedValues() {
         let suiteName = "QuitGestureTimingTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
