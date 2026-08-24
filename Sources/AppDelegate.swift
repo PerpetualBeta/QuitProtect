@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import QuitProtectCore
 import SwiftUI
 import ServiceManagement
 import Sparkle
@@ -34,7 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     var holdDuration: Double = {
-        UserDefaults.standard.object(forKey: "holdDuration") as? Double ?? 1.0
+        QuitGestureTiming.loadHoldDuration(from: .standard, key: "holdDuration")
     }() {
         didSet {
             UserDefaults.standard.set(holdDuration, forKey: "holdDuration")
@@ -43,7 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     var doublePressInterval: Double = {
-        UserDefaults.standard.object(forKey: "doublePressInterval") as? Double ?? 0.4
+        QuitGestureTiming.loadDoublePressInterval(from: .standard, key: "doublePressInterval")
     }() {
         didSet {
             UserDefaults.standard.set(doublePressInterval, forKey: "doublePressInterval")

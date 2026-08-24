@@ -69,12 +69,14 @@ public final class QuitGestureCoordinator {
 
     public init(
         mode: QuitGestureMode = .doublePress,
-        holdDuration: TimeInterval = 1.0,
-        doublePressInterval: TimeInterval = 0.4
+        holdDuration: TimeInterval = QuitGestureTiming.defaultHoldDuration,
+        doublePressInterval: TimeInterval = QuitGestureTiming.defaultDoublePressInterval
     ) {
         self.configuredMode = mode
-        self.configuredHoldDuration = holdDuration
-        self.configuredDoublePressInterval = doublePressInterval
+        self.configuredHoldDuration = QuitGestureTiming.normalizedHoldDuration(holdDuration)
+        self.configuredDoublePressInterval = QuitGestureTiming.normalizedDoublePressInterval(
+            doublePressInterval
+        )
     }
 
     public var blockedCount: Int {
@@ -92,8 +94,10 @@ public final class QuitGestureCoordinator {
     ) {
         queue.sync {
             self.configuredMode = mode
-            self.configuredHoldDuration = holdDuration
-            self.configuredDoublePressInterval = doublePressInterval
+            self.configuredHoldDuration = QuitGestureTiming.normalizedHoldDuration(holdDuration)
+            self.configuredDoublePressInterval = QuitGestureTiming.normalizedDoublePressInterval(
+                doublePressInterval
+            )
             activeTimeoutToken = nil
             machine.reset()
         }
@@ -109,12 +113,16 @@ public final class QuitGestureCoordinator {
     }
 
     public func update(holdDuration: TimeInterval) {
-        queue.sync { self.configuredHoldDuration = holdDuration }
+        queue.sync {
+            self.configuredHoldDuration = QuitGestureTiming.normalizedHoldDuration(holdDuration)
+        }
     }
 
     public func update(doublePressInterval: TimeInterval) {
         queue.sync {
-            self.configuredDoublePressInterval = doublePressInterval
+            self.configuredDoublePressInterval = QuitGestureTiming.normalizedDoublePressInterval(
+                doublePressInterval
+            )
             activeTimeoutToken = nil
             machine.reset()
         }
