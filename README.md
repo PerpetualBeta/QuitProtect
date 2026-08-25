@@ -1,6 +1,6 @@
 # QuitProtect
 
-A macOS utility that prevents accidental ⌘Q quits. Choose between double-press or hold-to-quit modes. Lives in your menu bar, stays out of your way.
+A macOS utility that prevents accidental `command` `Q` quits. Choose between double-press or hold-to-quit modes. Lives in your menu bar, stays out of your way.
 
 ## Requirements
 
@@ -26,15 +26,15 @@ After installation:
 
 ## How It Works
 
-QuitProtect intercepts ⌘Q before it reaches the frontmost application and requires you to confirm the quit with a deliberate action. A single accidental keypress won't close anything.
+QuitProtect intercepts `command` `Q` before it reaches the frontmost application and requires you to confirm the quit with a deliberate action. A single accidental keypress won't close anything.
 
 There are two protection modes:
 
-### Double-press ⌘Q (default)
+### Double-press `command` `Q` (default)
 
-The first ⌘Q is consumed silently. Press ⌘Q again within the configured interval to actually quit. If you don't press again, nothing happens — the quit is blocked.
+The first `command` `Q` is consumed silently. Press `command` `Q` again within the configured interval to actually quit. If you don't press again, nothing happens — the quit is blocked.
 
-Optionally, enable **Show quit guidance** in Settings to display a non-activating overlay after the first press. The overlay reminds you to press ⌘Q again without taking focus away from the app you were using.
+Optionally, enable **Show quit guidance** in Settings to display a non-activating overlay after the first press. The overlay reminds you to press `command` `Q` again without taking focus away from the app you were using.
 
 | Interval | Description |
 |----------|-------------|
@@ -43,9 +43,9 @@ Optionally, enable **Show quit guidance** in Settings to display a non-activatin
 | 0.5s | Relaxed |
 | 0.75s | Generous window |
 
-### Hold ⌘Q
+### Hold `command` `Q`
 
-Hold ⌘Q for the configured duration to quit. Anything shorter is blocked.
+Hold `command` `Q` for the configured duration to quit. Anything shorter is blocked.
 
 When **Show quit guidance** is enabled, the overlay appears on the initial press and dismisses when the gesture is completed or cancelled.
 
@@ -80,7 +80,7 @@ Switch between double-press and hold-to-quit using the radio buttons. The timing
 ### General
 
 - **Accessibility** — permission status and grant button
-- **Show quit guidance** — a small overlay on the first ⌘Q telling you what to do next, off by default. It does not take focus from the app you were using, and it disappears the moment the gesture completes or lapses rather than lingering
+- **Show quit guidance** — a small overlay on the first `command` `Q` telling you what to do next, off by default. It does not take focus from the app you were using, and it disappears the moment the gesture completes or lapses rather than lingering
 - **Show icon in menu bar** — hides the power icon in the menu bar while QuitProtect keeps running in the background, still protecting against accidental quits. Your choice persists across launches, including login auto-start. *Shown only on macOS 14–15 — on macOS 26 (Tahoe) and later, use System Settings → Menu Bar, which provides this natively.*
 - **Menu bar icon pill** — optional grey background for stronger contrast on busy or wallpaper-tinted menu bars (off by default)
 - **Launch at Login** — start automatically when you log in
@@ -104,11 +104,11 @@ Needed to intercept keyboard events before they reach applications.
 
 - Prompted automatically on first launch
 - Grant in: **System Settings → Privacy & Security → Accessibility**
-- Without this, QuitProtect cannot intercept ⌘Q
+- Without this, QuitProtect cannot intercept `command` `Q`
 
 ## Self-exclusion
 
-QuitProtect does not protect itself — you can always quit QuitProtect with a normal ⌘Q.
+QuitProtect does not protect itself — you can always quit QuitProtect with a normal `command` `Q`.
 
 ## Quitting
 
@@ -131,16 +131,16 @@ open .build/QuitProtect.app
 
 ## How It Works (Technical)
 
-QuitProtect installs a CGEvent tap at the head of the keyboard event pipeline. It monitors keyDown, keyUp, and flagsChanged events, filtering for ⌘Q specifically (keyCode 12 with only the Command modifier).
+QuitProtect installs a CGEvent tap at the head of the keyboard event pipeline. It monitors keyDown, keyUp, and flagsChanged events, filtering for `command` `Q` specifically (keyCode 12 with only the Command modifier).
 
-- **Double-press mode**: the first ⌘Q keyDown is consumed. A timer starts. If a second ⌘Q arrives within the interval, it passes through. If the timer expires, the quit is counted as blocked.
-- **Hold mode**: ⌘Q keyDown events are consumed. Key repeat events are monitored to measure hold duration. Once the configured duration is reached, a synthetic ⌘Q is posted to actually quit the app. Releasing early counts as a blocked quit.
+- **Double-press mode**: the first `command` `Q` keyDown is consumed. A timer starts. If a second `command` `Q` arrives within the interval, it passes through. If the timer expires, the quit is counted as blocked.
+- **Hold mode**: `command` `Q` keyDown events are consumed. Key repeat events are monitored to measure hold duration. Once the configured duration is reached, a synthetic `command` `Q` is posted to actually quit the app. Releasing early counts as a blocked quit.
 
-State is properly reset regardless of key release order (⌘ released before Q, Q released before ⌘, or simultaneous release).
+State is properly reset regardless of key release order (`command` released before `Q`, `Q` released before `command`, or simultaneous release).
 
 ## Troubleshooting
 
-### ⌘Q isn't being intercepted
+### `command` `Q` isn't being intercepted
 
 Make sure QuitProtect has **Accessibility** permission in System Settings → Privacy & Security → Accessibility. You may need to remove and re-add it if you've rebuilt the app.
 
@@ -148,9 +148,9 @@ Make sure QuitProtect has **Accessibility** permission in System Settings → Pr
 
 The engine is waiting for Accessibility permission. Check System Settings → Privacy & Security → Accessibility and ensure QuitProtect is listed and enabled.
 
-### Keys feel stuck after ⌘Q
+### Keys feel stuck after `command` `Q`
 
-This was fixed in v1.0 — the engine now resets state correctly when ⌘ is released before Q. If you experience this, ensure you're running the latest version.
+This was fixed in v1.0 — the engine now resets state correctly when `command` is released before `Q`. If you experience this, ensure you're running the latest version.
 
 ## Acknowledgements
 

@@ -73,8 +73,8 @@ public final class QuitGestureCoordinator {
         doublePressInterval: TimeInterval = QuitGestureTiming.defaultDoublePressInterval
     ) {
         self.configuredMode = mode
-        self.configuredHoldDuration = QuitGestureTiming.normalizedHoldDuration(holdDuration)
-        self.configuredDoublePressInterval = QuitGestureTiming.normalizedDoublePressInterval(
+        self.configuredHoldDuration = QuitGestureTiming.checkedHoldDuration(holdDuration)
+        self.configuredDoublePressInterval = QuitGestureTiming.checkedDoublePressInterval(
             doublePressInterval
         )
     }
@@ -94,8 +94,8 @@ public final class QuitGestureCoordinator {
     ) {
         queue.sync {
             self.configuredMode = mode
-            self.configuredHoldDuration = QuitGestureTiming.normalizedHoldDuration(holdDuration)
-            self.configuredDoublePressInterval = QuitGestureTiming.normalizedDoublePressInterval(
+            self.configuredHoldDuration = QuitGestureTiming.checkedHoldDuration(holdDuration)
+            self.configuredDoublePressInterval = QuitGestureTiming.checkedDoublePressInterval(
                 doublePressInterval
             )
             activeTimeoutToken = nil
@@ -114,13 +114,13 @@ public final class QuitGestureCoordinator {
 
     public func update(holdDuration: TimeInterval) {
         queue.sync {
-            self.configuredHoldDuration = QuitGestureTiming.normalizedHoldDuration(holdDuration)
+            self.configuredHoldDuration = QuitGestureTiming.checkedHoldDuration(holdDuration)
         }
     }
 
     public func update(doublePressInterval: TimeInterval) {
         queue.sync {
-            self.configuredDoublePressInterval = QuitGestureTiming.normalizedDoublePressInterval(
+            self.configuredDoublePressInterval = QuitGestureTiming.checkedDoublePressInterval(
                 doublePressInterval
             )
             activeTimeoutToken = nil
