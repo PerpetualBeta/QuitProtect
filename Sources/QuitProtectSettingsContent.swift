@@ -1,4 +1,5 @@
 import SwiftUI
+import QuitProtectCore
 
 struct QuitProtectSettingsContent: View {
     let delegate: AppDelegate
@@ -29,10 +30,10 @@ struct QuitProtectSettingsContent: View {
                         get: { delegate.holdDuration },
                         set: { delegate.holdDuration = $0 }
                     )) {
-                        Text(L10n.string("duration.0.5_seconds", defaultValue: "0.5s")).tag(0.5)
-                        Text(L10n.string("duration.1.0_seconds", defaultValue: "1.0s")).tag(1.0)
-                        Text(L10n.string("duration.1.5_seconds", defaultValue: "1.5s")).tag(1.5)
-                        Text(L10n.string("duration.2.0_seconds", defaultValue: "2.0s")).tag(2.0)
+                        ForEach(QuitGestureTiming.holdOptions) { option in
+                            Text(L10n.string(option.localizationKey, defaultValue: option.defaultLabel))
+                                .tag(option.value)
+                        }
                     }
                     .labelsHidden()
                     .fixedSize()
@@ -47,10 +48,10 @@ struct QuitProtectSettingsContent: View {
                         get: { delegate.doublePressInterval },
                         set: { delegate.doublePressInterval = $0 }
                     )) {
-                        Text(L10n.string("duration.0.3_seconds", defaultValue: "0.3s")).tag(0.3)
-                        Text(L10n.string("duration.0.4_seconds", defaultValue: "0.4s")).tag(0.4)
-                        Text(L10n.string("duration.0.5_seconds", defaultValue: "0.5s")).tag(0.5)
-                        Text(L10n.string("duration.0.75_seconds", defaultValue: "0.75s")).tag(0.75)
+                        ForEach(QuitGestureTiming.doublePressOptions) { option in
+                            Text(L10n.string(option.localizationKey, defaultValue: option.defaultLabel))
+                                .tag(option.value)
+                        }
                     }
                     .labelsHidden()
                     .fixedSize()

@@ -130,6 +130,117 @@ final class QuitGestureStateMachineTests: XCTestCase {
         XCTAssertEqual(coordinator.blockedCount, 1)
     }
 
+    func testCoordinatorNormalizesInvalidHoldDurations() {
+        for invalid in [-1.0, 0, 0.6, 10, .nan, .infinity] {
+            let coordinator = QuitGestureCoordinator(mode: .holdToQuit, holdDuration: invalid)
+
+            _ = coordinator.handle(.keyDown(now: 0, isRepeat: false))
+            XCTAssertFalse(
+                coordinator.handle(.keyDown(now: 0.5, isRepeat: true)).shouldQuit,
+                "Invalid duration \(invalid) should use the default hold duration"
+            )
+            XCTAssertFalse(
+                coordinator.handle(.keyDown(now: 0.75, isRepeat: true)).shouldQuit,
+                "Invalid duration \(invalid) should use the default hold duration"
+            )
+            XCTAssertTrue(
+                coordinator.handle(.keyDown(now: 1, isRepeat: true)).shouldQuit,
+                "Invalid duration \(invalid) should use the default hold duration"
+            )
+        }
+    }
+
+    func testCoordinatorNormalizesInvalidDoublePressIntervals() {
+        for invalid in [-1.0, 0, 0.6, 10, .nan, .infinity] {
+            let coordinator = QuitGestureCoordinator(doublePressInterval: invalid)
+
+            XCTAssertEqual(
+                coordinator.handle(.keyDown(now: 0, isRepeat: false)).timeoutAfter,
+                0.4,
+                "Invalid interval \(invalid) should use the default double-press interval"
+            )
+        }
+    }
+
+    func testGestureTimingPreservesEverySupportedValue() {
+        for duration in QuitGestureTiming.supportedHoldDurations {
+            XCTAssertEqual(QuitGestureTiming.normalizedHoldDuration(duration), duration)
+        }
+        for interval in QuitGestureTiming.supportedDoublePressIntervals {
+            XCTAssertEqual(QuitGestureTiming.normalizedDoublePressInterval(interval), interval)
+        }
+    }
+
+    func testGestureTimingOptionsAreValidSingleSourcesOfTruth() {
+        for (options, defaultValue) in [
+            (QuitGestureTiming.holdOptions, QuitGestureTiming.defaultHoldDuration),
+            (QuitGestureTiming.doublePressOptions, QuitGestureTiming.defaultDoublePressInterval),
+        ] {
+            let values = options.map(\.value)
+            XCTAssertEqual(Set(values).count, values.count)
+            XCTAssertTrue(values.allSatisfy { $0.isFinite && $0 > 0 })
+            XCTAssertTrue(values.contains(defaultValue))
+            XCTAssertTrue(options.allSatisfy {
+                !$0.localizationKey.isEmpty && !$0.defaultLabel.isEmpty
+            })
+        }
+    }
+
+    func testGestureTimingRepairsInvalidPersistedValues() {
+        let suiteName = "QuitGestureTimingTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        defaults.set(-1.0, forKey: "hold")
+        defaults.set(Double.nan, forKey: "doublePress")
+
+        XCTAssertEqual(
+            QuitGestureTiming.loadHoldDuration(from: defaults, key: "hold"),
+            QuitGestureTiming.defaultHoldDuration
+        )
+        XCTAssertEqual(
+            QuitGestureTiming.loadDoublePressInterval(from: defaults, key: "doublePress"),
+            QuitGestureTiming.defaultDoublePressInterval
+        )
+        XCTAssertEqual(defaults.double(forKey: "hold"), QuitGestureTiming.defaultHoldDuration)
+        XCTAssertEqual(
+            defaults.double(forKey: "doublePress"),
+            QuitGestureTiming.defaultDoublePressInterval
+        )
+    }
+
+    func testGestureTimingDoesNotPersistDefaultsForMissingKeys() {
+        let suiteName = "QuitGestureTimingTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        XCTAssertEqual(
+            QuitGestureTiming.loadHoldDuration(from: defaults, key: "hold"),
+            QuitGestureTiming.defaultHoldDuration
+        )
+        XCTAssertEqual(
+            QuitGestureTiming.loadDoublePressInterval(from: defaults, key: "doublePress"),
+            QuitGestureTiming.defaultDoublePressInterval
+        )
+        XCTAssertNil(defaults.object(forKey: "hold"))
+        XCTAssertNil(defaults.object(forKey: "doublePress"))
+    }
+
+    func testCoordinatorNormalizesInvalidTimingUpdates() {
+        let holdCoordinator = QuitGestureCoordinator(mode: .holdToQuit)
+        holdCoordinator.update(holdDuration: -1)
+        _ = holdCoordinator.handle(.keyDown(now: 0, isRepeat: false))
+        XCTAssertFalse(holdCoordinator.handle(.keyDown(now: 0.75, isRepeat: true)).shouldQuit)
+        XCTAssertTrue(holdCoordinator.handle(.keyDown(now: 1, isRepeat: true)).shouldQuit)
+
+        let doublePressCoordinator = QuitGestureCoordinator()
+        doublePressCoordinator.update(doublePressInterval: .nan)
+        XCTAssertEqual(
+            doublePressCoordinator.handle(.keyDown(now: 0, isRepeat: false)).timeoutAfter,
+            QuitGestureTiming.defaultDoublePressInterval
+        )
+    }
+
     func testCoordinatorSerializesConcurrentEvents() {
         let coordinator = QuitGestureCoordinator(mode: .holdToQuit, holdDuration: 1)
         let resultLock = NSLock()
