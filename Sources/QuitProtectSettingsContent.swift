@@ -31,7 +31,7 @@ struct QuitProtectSettingsContent: View {
                         set: { delegate.holdDuration = $0 }
                     )) {
                         ForEach(QuitGestureTiming.holdOptions) { option in
-                            Text(L10n.string(option.localizationKey, defaultValue: option.defaultLabel))
+                            Text(L10n.string(option.localizationKey, defaultValue: option.fallbackLabel))
                                 .tag(option.value)
                         }
                     }
@@ -49,7 +49,7 @@ struct QuitProtectSettingsContent: View {
                         set: { delegate.doublePressInterval = $0 }
                     )) {
                         ForEach(QuitGestureTiming.doublePressOptions) { option in
-                            Text(L10n.string(option.localizationKey, defaultValue: option.defaultLabel))
+                            Text(L10n.string(option.localizationKey, defaultValue: option.fallbackLabel))
                                 .tag(option.value)
                         }
                     }

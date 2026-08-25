@@ -34,24 +34,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    // Correcting an out-of-catalog value by assigning the property inside its own
+    // `didSet` re-enters the observer: `@Observable` moves the observer onto its private
+    // backing store, so the assignment goes back through the generated setter instead of
+    // being suppressed the way Swift suppresses it on a plain stored property. Both
+    // observers below therefore `return` after the correcting assignment and let the
+    // second pass do the work. Without the `return`, an unsupported value writes to
+    // UserDefaults twice and calls the engine twice, and `updateDoublePressInterval`
+    // resolves the quit toast and resets the gesture machine on each of them.
     var holdDuration: Double = {
-        QuitGestureTiming.loadHoldDuration(from: .standard, key: "holdDuration")
+        QuitGestureTiming.resolveHoldDuration(from: .standard)
     }() {
         didSet {
             let normalized = QuitGestureTiming.normalizedHoldDuration(holdDuration)
-            if holdDuration != normalized { holdDuration = normalized }
-            UserDefaults.standard.set(normalized, forKey: "holdDuration")
+            guard holdDuration == normalized else {
+                holdDuration = normalized
+                return
+            }
+            UserDefaults.standard.set(normalized, forKey: QuitGestureTiming.DefaultsKey.holdDuration)
             engine.updateHoldDuration(normalized)
         }
     }
 
     var doublePressInterval: Double = {
-        QuitGestureTiming.loadDoublePressInterval(from: .standard, key: "doublePressInterval")
+        QuitGestureTiming.resolveDoublePressInterval(from: .standard)
     }() {
         didSet {
             let normalized = QuitGestureTiming.normalizedDoublePressInterval(doublePressInterval)
-            if doublePressInterval != normalized { doublePressInterval = normalized }
-            UserDefaults.standard.set(normalized, forKey: "doublePressInterval")
+            guard doublePressInterval == normalized else {
+                doublePressInterval = normalized
+                return
+            }
+            UserDefaults.standard.set(
+                normalized,
+                forKey: QuitGestureTiming.DefaultsKey.doublePressInterval
+            )
             engine.updateDoublePressInterval(normalized)
         }
     }
