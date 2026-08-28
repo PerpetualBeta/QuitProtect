@@ -227,7 +227,19 @@ final class QuitProtectEngine {
             forName: NSNotification.Name("com.apple.accessibility.api"),
             object: nil, queue: .main
         ) { [weak self] _ in
-            Task { @MainActor in self?.handleTrustChange() }
+            // Deliberately no read here. The announcement says the cached
+            // AXIsProcessTrusted() answer is about to become wrong, not that the new one
+            // is available yet: it arrives before tccd commits, the first read afterwards
+            // is the one that refetches, and that read pins whatever it got for every
+            // later read until the next announcement. Reading on the spot therefore pins
+            // the OLD answer and a revoke goes unnoticed. JorvikPermissionWatcher carries
+            // the measurement; borrow its settle window rather than a second opinion of
+            // how long tccd takes.
+            DispatchQueue.main.asyncAfter(
+                deadline: .now() + JorvikPermissionWatcher.commitSeconds
+            ) { [weak self] in
+                Task { @MainActor in self?.handleTrustChange() }
+            }
         }
     }
 
@@ -237,11 +249,19 @@ final class QuitProtectEngine {
     /// macOS offers here. It is treated as a prompt to go and look rather than as truth in itself:
     /// `isProtecting` probes the tap directly, so if this notification ever stopped arriving the UI
     /// would still tell the truth the next time it drew.
+    ///
+    /// Called on a delay — see the observer in `init()` for why the read cannot be taken when the
+    /// announcement lands.
     private func handleTrustChange() {
-        guard isActive, !AXIsProcessTrusted() else { return }
+        guard isActive else { return }
 
-        // Revoked mid-session. The tap is already dead — clear the rest of the state and go back to
-        // watching, so protection restores itself if the user grants permission again.
+        // Two ways to be active and not protected, and they want the same treatment. Permission was
+        // revoked, or the tap died alongside a permission change that did not revoke ours.
+        // `isProtecting` probes the tap, so it catches the second case that a trust read cannot.
+        guard !AXIsProcessTrusted() || !isProtecting else { return }
+
+        // The tap is already dead — clear the rest of the state and go back to watching, so
+        // protection restores itself if the user grants permission again.
         stop()
         beginPollingForPermission()
         onProtectionChanged?()
